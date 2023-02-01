@@ -104,9 +104,9 @@ pub fn run(
         beta: f64,
         weight: f64,
         intercept: f64,
-        // predicted_mm: f64,
-        // predicted_um: f64,
-        // predicted_uu: f64,
+        predicted_mm: f64,
+        predicted_um: f64,
+        predicted_uu: f64,
     }
 
     let mut results = Vec::new();
@@ -157,9 +157,9 @@ pub fn run(
             beta,
             weight: best[2],
             intercept: best[3],
-            // predicted_mm,
-            // predicted_um,
-            // predicted_uu,
+            predicted_mm,
+            predicted_um,
+            predicted_uu,
         });
 
         println!("Progress: {}%", i / n_starts * 100);

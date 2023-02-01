@@ -1,8 +1,6 @@
-use std::ops::AddAssign;
 use std::ops::Mul;
 
 use argmin_math::ArgminInv;
-use argmin_math::ArgminMul;
 use ndarray::array;
 
 use ndarray::Array2;
@@ -105,14 +103,14 @@ pub fn divergence(
             + (svt1_mm[0].mul(&svt2_mm[2]) + svt1_mm[2].mul(&svt2_mm[0]));
 
         let dt1t2_um = 0.5.mul(
-            &(svt1_um[0]).mul(&svt2_um[1])
+            (svt1_um[0]).mul(&svt2_um[1])
                 + svt1_um[1].mul(&svt2_um[0])
                 + svt1_um[1].mul(&svt2_um[2])
                 + svt1_um[2].mul(&svt2_um[1]),
         ) + (svt1_um[0].mul(&svt2_um[2]) + svt1_um[2].mul(&svt2_um[0]));
 
         let dt1t2_uu = 0.5.mul(
-            &(svt1_uu[0]).mul(&svt2_uu[1])
+            (svt1_uu[0]).mul(&svt2_uu[1])
                 + svt1_uu[1].mul(&svt2_uu[0])
                 + svt1_uu[1].mul(&svt2_uu[2])
                 + svt1_uu[2].mul(&svt2_uu[1]),
@@ -130,7 +128,7 @@ pub fn divergence(
         println!("{} {} {}", svt0[0], svt0[1], svt0[2]);
         println!("{dt1t2_uu} {dt1t2_um} {dt1t2_mm}");
 
-        dt1t2.push(svt0[0] * (&dt1t2_uu) + svt0[1] * (&dt1t2_um) + svt0[2] * (&dt1t2_mm));
+        dt1t2.push(svt0[0] * (dt1t2_uu) + svt0[1] * (dt1t2_um) + svt0[2] * (dt1t2_mm));
     }
 
     println!("dt1t2: {:?}", dt1t2[0]);
