@@ -30,7 +30,7 @@ fn matrix_power(matrix: &Array2<f64>, power: i8) -> Array2<f64> {
 pub fn divergence(
     pedigree: &Array2<f64>,
     p_mm: f64,
-    p_um: f64,
+    _p_um: f64,
     p_uu: f64,
     alpha: f64,
     beta: f64,
@@ -66,35 +66,8 @@ pub fn divergence(
         let svt2_uu = array![1.0, 0.0, 0.0]
             .t()
             .dot(&matrix_power(&genmatrix, (p[2] - p[0]) as i8));
-        //  println!("{:?}", svt0);
+
         // Conditional divergences
-
-        // 	dt1t2.MM  <- 1/2*(svt1.MM[,1] * svt2.MM[,2] + svt1.MM[,2] * svt2.MM[,1] + svt1.MM[,2] * svt2.MM[,3] +
-        //	svt1.MM[,3] * svt2.MM[,2]) + 1*(svt1.MM[,1] * svt2.MM[,3]  + svt1.MM[,3] * svt2.MM[,1])
-
-        // let a = array![0.0, 0.0, 1.0];
-        // let n = p[1] - p[0];
-        // let c = matrix_power(&genmatrix, n as i8);
-        // let d = a.t().dot(&genmatrix);
-        // let b = a.t().dot(&c);
-        // // println!("{}", array![0.0, 0.0, 0.1].t().dot())
-
-        // println!("Genmatrix:");
-        // println!("{:#?}", genmatrix);
-        // println!("Simple Multiply:");
-        // println!("{:?}", d);
-        // println!("Power:");
-        // println!("{:?}", c);
-        // println!("Combined:");
-        // println!("{:?}", b);
-
-        // let svt1_mm = svt1_mm.cot();
-        // let svt2_mm = svt2_mm.t();
-        // let svt1_um = svt1_um.t();
-        // let svt2_um = svt2_um.t();
-        // let svt1_uu = svt1_uu.t();
-        // let svt2_uu = svt2_uu.t();
-
         let dt1t2_mm = 0.5
             * (svt1_mm[0].mul(&svt2_mm[1])
                 + svt1_mm[1].mul(&svt2_mm[0])
@@ -116,22 +89,8 @@ pub fn divergence(
                 + svt1_uu[2].mul(&svt2_uu[1]),
         ) + (svt1_uu[0].mul(&svt2_uu[2]) + svt1_uu[2].mul(&svt2_uu[0]));
 
-        // Total (weighted) divergence
-        // dbg!(
-        //     svt0.t()[0], // Tooo large
-        //     // dt1t2_uu,    // NaN
-        //     svt0.t()[1], // Tooo  large
-        //     //dt1t2_um,    // NaN
-        //     svt0.t()[2], // Tooo large
-        //                  // dt1t2_mm     // NaN
-        // );
-        println!("{} {} {}", svt0[0], svt0[1], svt0[2]);
-        println!("{dt1t2_uu} {dt1t2_um} {dt1t2_mm}");
-
         dt1t2.push(svt0[0] * (dt1t2_uu) + svt0[1] * (dt1t2_um) + svt0[2] * (dt1t2_mm));
     }
-
-    println!("dt1t2: {:?}", dt1t2[0]);
 
     // Pr(UU) at equilibrium given alpha and beta
     let puuinf_est = p_uu_est(alpha, beta);
@@ -195,20 +154,7 @@ mod test {
     fn test_p_uu_est() {
         // Compare estimated steady state methylation to R
         assert_close!(p_uu_est(3.974271e-09, 1.519045e-07), 0.9745041);
-        let p = Params::new(1.0);
-    }
-
-    #[test]
-    fn test_genmatrix() {
-        let p = Params::new(1.0);
-        // let f = genmatrix(p.alpha, p.beta);
-        // println!("{:?}", f);
-        // for (a, b) in genmatrix(p.alpha, p.beta)
-        //     .iter()
-        //     .zip(genmatrix_r(p.alpha, p.beta).iter())
-        // {
-        //     //   assert_close!(a, b);
-        // }
+        let _p = Params::new(1.0);
     }
 
     #[test]
@@ -232,7 +178,6 @@ mod test {
 
         assert_eq!(divergence.dt1t2.len(), r.len());
         for (i, r) in r.iter().enumerate() {
-            println!("{} {}", divergence.dt1t2[i], r);
             assert!(divergence.dt1t2[i].is_normal());
             assert_close!(divergence.dt1t2[i], *r);
         }

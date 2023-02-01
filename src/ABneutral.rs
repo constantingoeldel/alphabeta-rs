@@ -207,7 +207,7 @@ pub fn run(
 
     let mut predicted_divergence = Vec::new();
 
-    for (i, row) in pedigree.rows().into_iter().enumerate() {
+    for (i, _row) in pedigree.rows().into_iter().enumerate() {
         predicted_divergence.push(
             best.intercept + divergence.dt1t2[i], /*+ delta_t[i] * best.alpha*/
         );
@@ -225,34 +225,6 @@ pub fn run(
 
     Ok(())
 }
-
-// fn divergence {
-
-// }
-
-// /// LSE_intercept<-function(param_int)
-// ///	{
-// ///        d = divergence(pedigree, p0mm, p0um, p0uu, param_int[1:3])
-// ///        sum((pedigree[,4] - param_int[4] - d[[2]])^2) +
-// ///          eqp.weight*nrow(pedigree)*((d[[1]]- eqp)^2)
-// ///      }
-// fn lse_intercept(
-//     pedigree: ArrayBase<f64>,
-//     p0mm: f64,
-//     p0um: f64,
-//     p0uu: f64,
-//     alpha: f64,
-//     beta: f64,
-//     weight: f64,
-//     epq_weight: f64,
-//     eqp: f64,
-//     params: Vec<f64>,
-// ) {
-//     let divergence = divergence(pedigree, p0mm, p0um, p0uu, alpha, beta, weight);
-//     let sum = pedigre.powi(2)
-//         + epq_weight * pedigree.len() * ((d[[1]] - eqp).powi(2));
-//     sum
-// }
 
 #[cfg(test)]
 mod tests {
