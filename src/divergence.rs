@@ -97,12 +97,12 @@ pub fn divergence(
     Divergence { dt1t2, puuinf_est }
 }
 
-fn p_uu_est(alpha: f64, beta: f64) -> f64 {
+pub fn p_uu_est(alpha: f64, beta: f64) -> f64 {
     (beta * ((1.0 - beta).powi(2) - (1.0 - alpha).powi(2) - 1.0))
         / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0))
 }
 
-fn genmatrix(alpha: f64, beta: f64) -> Array2<f64> {
+pub fn genmatrix(alpha: f64, beta: f64) -> Array2<f64> {
     array![
         [
             (1.0 - alpha).powi(2),
@@ -124,7 +124,7 @@ fn genmatrix(alpha: f64, beta: f64) -> Array2<f64> {
 
 #[cfg(test)]
 mod test {
-    use crate::{pedigree, ABneutral::Params};
+    use crate::*;
 
     use super::*;
 
@@ -154,13 +154,12 @@ mod test {
     fn test_p_uu_est() {
         // Compare estimated steady state methylation to R
         assert_close!(p_uu_est(3.974271e-09, 1.519045e-07), 0.9745041);
-        let _p = Params::new(1.0);
+        let _p = Model::new(1.0);
     }
 
     #[test]
     fn same_as_r() {
-        let pedigree =
-            pedigree::read_pedigree_from_file("/home/cgoeldel/epigenomics/alphabeta/pedigree.txt");
+        let pedigree = Pedigree::from_file("/home/cgoeldel/epigenomics/alphabeta/pedigree.txt");
         let divergence = divergence(
             &pedigree,
             0.25,
