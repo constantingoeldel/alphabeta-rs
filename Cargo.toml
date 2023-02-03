@@ -3,6 +3,15 @@ name = "alphabeta"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "alphabeta"
+path = "src/lib.rs"
+
+[[bin]] 
+name = "alphabeta"
+path = "src/bin.rs"
+
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -13,3 +22,10 @@ ndarray = { version = "0.15.0", features = ["blas"] }
 blas-src = { version = "0.8", features = ["openblas"] }
 openblas-src = { version = "0.10", features = ["cblas", "system"] }
 rand = "0.8.5"
+
+[dev-dependencies]
+criterion = "0.4"
+
+[[bench]]
+name = "alphabeta_benchmark"
+harness = false

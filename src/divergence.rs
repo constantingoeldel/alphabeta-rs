@@ -1,16 +1,19 @@
 use std::ops::Mul;
+use std::time::Instant;
 
 use argmin_math::ArgminInv;
 use ndarray::array;
 
 use ndarray::Array2;
 
+use crate::Pedigree;
+#[derive(Debug)]
 pub struct Divergence {
     pub dt1t2: Vec<f64>,
     pub puuinf_est: f64,
 }
 // https://numpy.org/doc/stable/reference/generated/numpy.linalg.matrix_power.html
-fn matrix_power(matrix: &Array2<f64>, power: i8) -> Array2<f64> {
+pub fn matrix_power(matrix: &Array2<f64>, power: i8) -> Array2<f64> {
     if power < 0 {
         return matrix_power(&matrix.inv().unwrap(), power.abs());
     }
@@ -28,7 +31,7 @@ fn matrix_power(matrix: &Array2<f64>, power: i8) -> Array2<f64> {
 }
 
 pub fn divergence(
-    pedigree: &Array2<f64>,
+    pedigree: &Pedigree,
     p_mm: f64,
     _p_um: f64,
     p_uu: f64,
@@ -37,61 +40,68 @@ pub fn divergence(
     weight: f64,
 ) -> Divergence {
     // State probabilities at G0; first element = PrUU, second element = PrUM, third element = PrMM ### Is the second field correct?
+
     let sv_gzero = array![p_uu, (weight) * p_mm, (1.0 - weight) * p_mm];
 
     // 	Defining the generation (or transition) matrix
     let genmatrix = genmatrix(alpha, beta);
 
     let mut dt1t2 = Vec::new();
-
     // 	Calculating theoretical divergence for every observed pair in 'pedigree.txt'
+    let now = Instant::now();
     for p in pedigree.rows() {
+        let (t0, t1, t2) = (p[0] as i8, p[1] as i8, p[2] as i8);
+
+        let now_loop = Instant::now();
         // 			Define state vectors for t1,t2 and t0 from pedigree using matrix multiplications from library(expm)
-        let svt0 = sv_gzero.t().dot(&matrix_power(&genmatrix, p[0] as i8));
+        let svt0 = sv_gzero.t().dot(&matrix_power(&genmatrix, t0));
         let svt1_mm = array![0.0, 0.0, 1.0]
             .t()
-            .dot(&matrix_power(&genmatrix, (p[1] - p[0]) as i8));
+            .dot(&matrix_power(&genmatrix, t1 - t0));
         let svt2_mm = array![0.0, 0.0, 1.0]
             .t()
-            .dot(&matrix_power(&genmatrix, (p[2] - p[0]) as i8));
+            .dot(&matrix_power(&genmatrix, t2 - t0));
         let svt1_um = array![0.0, 1.0, 0.0]
             .t()
-            .dot(&matrix_power(&genmatrix, (p[1] - p[0]) as i8));
+            .dot(&matrix_power(&genmatrix, t1 - t0));
         let svt2_um = array![0.0, 1.0, 0.0]
             .t()
-            .dot(&matrix_power(&genmatrix, (p[2] - p[0]) as i8));
+            .dot(&matrix_power(&genmatrix, t2 - t0));
         let svt1_uu = array![1.0, 0.0, 0.0]
             .t()
-            .dot(&matrix_power(&genmatrix, (p[1] - p[0]) as i8));
+            .dot(&matrix_power(&genmatrix, t1 - t0));
         let svt2_uu = array![1.0, 0.0, 0.0]
             .t()
-            .dot(&matrix_power(&genmatrix, (p[2] - p[0]) as i8));
+            .dot(&matrix_power(&genmatrix, t2 - t0));
 
         // Conditional divergences
-        let dt1t2_mm = 0.5
-            * (svt1_mm[0].mul(&svt2_mm[1])
-                + svt1_mm[1].mul(&svt2_mm[0])
-                + svt1_mm[1].mul(&svt2_mm[2])
-                + svt1_mm[2].mul(&svt2_mm[1]))
-            + (svt1_mm[0].mul(&svt2_mm[2]) + svt1_mm[2].mul(&svt2_mm[0]));
+        let dt1t2_mm = 0.5_f64
+            * (svt1_mm[0] * svt2_mm[1]
+                + svt1_mm[1] * svt2_mm[0]
+                + svt1_mm[1] * svt2_mm[2]
+                + svt1_mm[2] * svt2_mm[1])
+            + (svt1_mm[0] * svt2_mm[2] + svt1_mm[2] * svt2_mm[0]);
 
-        let dt1t2_um = 0.5.mul(
-            (svt1_um[0]).mul(&svt2_um[1])
-                + svt1_um[1].mul(&svt2_um[0])
-                + svt1_um[1].mul(&svt2_um[2])
-                + svt1_um[2].mul(&svt2_um[1]),
-        ) + (svt1_um[0].mul(&svt2_um[2]) + svt1_um[2].mul(&svt2_um[0]));
+        let dt1t2_um = 0.5_f64
+            * ((svt1_um[0]) * svt2_um[1]
+                + svt1_um[1] * svt2_um[0]
+                + svt1_um[1] * svt2_um[2]
+                + svt1_um[2] * svt2_um[1])
+            + (svt1_um[0] * svt2_um[2] + svt1_um[2] * svt2_um[0]);
 
-        let dt1t2_uu = 0.5.mul(
-            (svt1_uu[0]).mul(&svt2_uu[1])
-                + svt1_uu[1].mul(&svt2_uu[0])
-                + svt1_uu[1].mul(&svt2_uu[2])
-                + svt1_uu[2].mul(&svt2_uu[1]),
-        ) + (svt1_uu[0].mul(&svt2_uu[2]) + svt1_uu[2].mul(&svt2_uu[0]));
+        let dt1t2_uu = 0.5_f64
+            * ((svt1_uu[0]) * svt2_uu[1]
+                + svt1_uu[1] * svt2_uu[0]
+                + svt1_uu[1] * svt2_uu[2]
+                + svt1_uu[2] * svt2_uu[1])
+            + (svt1_uu[0] * svt2_uu[2] + svt1_uu[2] * svt2_uu[0]);
 
         dt1t2.push(svt0[0] * (dt1t2_uu) + svt0[1] * (dt1t2_um) + svt0[2] * (dt1t2_mm));
+        let elapsed_loop = now_loop.elapsed();
+        // println!("Time elapsed in loop is: {:?}", elapsed_loop);
     }
-
+    let elapsed = now.elapsed();
+    //  println!("Time elapsed in divergence() is: {:?}", elapsed);
     // Pr(UU) at equilibrium given alpha and beta
     let puuinf_est = p_uu_est(alpha, beta);
     Divergence { dt1t2, puuinf_est }
@@ -128,28 +138,6 @@ mod test {
 
     use super::*;
 
-    macro_rules! assert_close_epsilon {
-        ($x:expr, $y:expr, $d:expr) => {
-            if !(($x - $y).abs() < $d) {
-                panic!(
-                    "assertion failed: `abs(left - right) < {}`, (left: `{}`, right: `{}`)",
-                    $d, $x, $y
-                );
-            }
-        };
-    }
-
-    macro_rules! assert_close {
-        ($x:expr, $y:expr ) => {
-            if !(($x - $y).abs() < 1e-6) {
-                panic!(
-                    "assertion failed: `abs(left - right) < {}`, (left: `{}`, right: `{}`)",
-                    1e-6, $x, $y
-                );
-            }
-        };
-    }
-
     #[test]
     fn test_p_uu_est() {
         // Compare estimated steady state methylation to R
@@ -158,8 +146,17 @@ mod test {
     }
 
     #[test]
+    fn test_matrix_power_is_identity_when_power_is_zero() {
+        let m = array![[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]];
+        let m_power = matrix_power(&m, 0);
+        assert_eq!(
+            m_power,
+            array![[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+        );
+    }
+    #[test]
     fn same_as_r() {
-        let pedigree = Pedigree::from_file("/home/cgoeldel/epigenomics/alphabeta/pedigree.txt");
+        let pedigree = Pedigree::from_file("./pedigree.txt");
         let divergence = divergence(
             &pedigree,
             0.25,
