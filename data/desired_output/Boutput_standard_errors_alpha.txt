@@ -1,0 +1,1 @@
+Boutput_standard_errors_alpha_epimutation_rate_estimation_window_gene_0 1.19025049000535e-05

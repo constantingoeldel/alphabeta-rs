@@ -1,0 +1,43 @@
+[package]
+name = "alphabeta"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "alphabeta"
+path = "src/lib.rs"
+
+[[bin]] 
+name = "alphabeta"
+path = "src/cli/alphabeta.rs"
+
+[[bin]]
+name = "windows"
+path = "src/cli/windows.rs"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+argmin = "0.8.0"
+argmin-math = { version = "0.3", features = ["ndarray_latest-serde", "nalgebra_latest-serde"] }
+float-ord = "0.3.2"
+ndarray = { version = "0.15.0",  features = ["blas"]}
+blas-src = { version = "0.8.0",  features = ["openblas"] }
+openblas-src = { version = "0.10",  features = ["cblas"] }
+rand = "0.8.5"
+rayon = "1.6.1"
+petgraph = "0.6.2"
+anyhow = "1.0.68"
+clap = { version = "4.1.4", features = ["derive"] }
+indicatif = "0.17.3"
+thiserror = "1.0.40"
+itertools = "0.10.5"
+
+
+[dev-dependencies]
+criterion = "0.4"
+
+[[bench]]
+name = "alphabeta_benchmark"
+harness = false
