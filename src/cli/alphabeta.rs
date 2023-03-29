@@ -1,28 +1,34 @@
-use std::path::Path;
+use alphabeta::alphabeta::run;
+use alphabeta::alphabeta::steady_state;
+use alphabeta::{arguments::AlphaBeta as Args, progress};
 
-use alphabeta::*;
 use clap::Parser;
 
 fn main() {
-    let mut args = Args::parse();
+    let args = Args::parse();
 
-    let (pedigree, p0uu) =
-        Pedigree::build(&args.nodelist, &args.edgelist, args.posterior_max_filter)
-            .expect("Error while building pedigree: ");
-    pedigree
-        .to_file(Path::new("./data/pedigree_wt.txt"))
-        .unwrap();
+    let (multi, _) = progress::multi(1);
 
-    let model =
-        ABneutral::run(&pedigree, p0uu, p0uu, 1.0, args.iterations, None).expect("Model failed");
-    let result = BootModel::run(&pedigree, &model, p0uu, p0uu, 1.0, args.iterations, None)
-        .expect("Bootstrap failed");
+    let result = run(args.clone(), &multi);
 
-    println!("##########");
-    println!("Results:\n");
-    println!("{model}");
-    println!("{result}");
-    println!("##########");
-    args.output.push("results.txt");
-    model.to_file(&args.output, &result).unwrap();
+    match result {
+        Err(e) => println!("Error: {e}"),
+        Ok((model, deviations, pedigree)) => {
+            println!("##########");
+            println!("Results:\n");
+            println!("{model}");
+            println!("{deviations}");
+            println!(
+                "Estimated steady state {}",
+                steady_state(model.alpha, model.beta)
+            );
+            println!("##########");
+            pedigree
+                .to_file(&args.output.join("pedigree.txt"))
+                .expect("Failed to write pedigree");
+            model
+                .to_file(&args.output.join("pedigree.txt"), &deviations)
+                .expect("Failed to write results");
+        }
+    }
 }

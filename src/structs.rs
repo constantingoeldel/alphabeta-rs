@@ -1,13 +1,7 @@
-use std::{
-    fmt::Display,
-    fs::File,
-    io::Write,
-    ops::Deref,
-    path::{Path, PathBuf},
-};
+use std::{fmt::Display, fs::File, io::Write, ops::Deref, path::Path};
 
 use argmin::core::CostFunction;
-use clap::Parser;
+
 use indicatif::{ProgressBar, ProgressStyle};
 use ndarray::Array1;
 use rand::{distributions::Uniform, thread_rng, Rng};
@@ -189,7 +183,8 @@ impl Model {
             / ((self.alpha + self.beta) * ((self.alpha + self.beta - 1.0).powi(2) - 2.0))
     }
     pub fn to_file(&self, path: &Path, errors: &StandardDeviations) -> std::io::Result<()> {
-        let mut file = File::create(path.join("model.txt")).unwrap();
+        println!("Writing model to file: {}", path.display());
+        let mut file = File::create(path).unwrap();
         let  content = format!(
             "Alpha {}\nBeta {}\nStandard_Errors_Alpha {}\nStandard_Errors_Beta {}\nStandard_Errors_Alpha_Beta {}\n", self.alpha, self.beta, errors.alpha, errors.beta, errors.alpha_beta
         );

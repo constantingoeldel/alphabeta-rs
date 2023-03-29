@@ -13,9 +13,9 @@ pub mod genes;
 pub mod macros;
 pub mod methylation_site;
 pub mod pedigree;
+pub mod progress;
 pub mod setup;
 pub mod structs;
-pub mod utils;
 pub mod windows;
 
 extern crate blas_src;

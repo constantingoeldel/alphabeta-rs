@@ -2,63 +2,49 @@ use anyhow::anyhow;
 use indicatif::MultiProgress;
 
 use crate::{
-    arguments,
+    arguments::AlphaBeta as Args,
     pedigree::Pedigree,
+    progress::specific,
     structs::{Model, StandardDeviations},
-    utils::progress_bar,
     *,
 };
 
-pub struct AlphaBeta<'bar> {
-    args: arguments::AlphaBeta,
-    bars: &'bar MultiProgress,
+pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, StandardDeviations, Pedigree)> {
+    println!("Building pedigree...");
+    let (pedigree, p0uu) =
+        Pedigree::build(&args.nodelist, &args.edgelist, args.posterior_max_filter)
+            .map_err(|e| anyhow!("Error while building pedigree: {}", e))?;
+
+    let (pb_neutral, pb_boot) = specific(bars, args.iterations);
+
+    let model = ABneutral::run(
+        &pedigree,
+        p0uu,
+        p0uu,
+        1.0,
+        args.iterations,
+        Some(pb_neutral.clone()),
+    )
+    .map_err(|e| anyhow!("Model failed: {}", e))?;
+    let result = BootModel::run(
+        &pedigree,
+        &model,
+        p0uu,
+        p0uu,
+        1.0,
+        args.iterations,
+        Some(pb_boot.clone()),
+    )
+    .map_err(|e| anyhow!("Bootstrap failed: {}", e))?;
+    bars.remove(&pb_neutral);
+    bars.remove(&pb_boot);
+
+    Ok((model, result, pedigree))
 }
 
-impl<'bar> AlphaBeta<'bar> {
-    pub fn new(args: arguments::AlphaBeta, bars: &'bar MultiProgress) -> Self {
-        AlphaBeta { args, bars }
-    }
-
-    pub fn run(&self) -> Result<(Model, StandardDeviations)> {
-        let arguments::AlphaBeta {
-            nodelist,
-            edgelist,
-            iterations,
-            output,
-            posterior_max_filter,
-        } = &self.args;
-
-        let (pedigree, p0uu) = Pedigree::build(nodelist, edgelist, *posterior_max_filter)
-            .map_err(|e| anyhow!("Error while building pedigree: {}", e))?;
-        pedigree.to_file(output)?;
-
-        let (pb_neutral, pb_boot) = progress_bar(self.bars, iterations);
-
-        let model = ABneutral::run(
-            &pedigree,
-            p0uu,
-            p0uu,
-            1.0,
-            *iterations,
-            Some(pb_neutral.clone()),
-        )
-        .map_err(|e| anyhow!("Model failed: {}", e))?;
-        let result = BootModel::run(
-            &pedigree,
-            &model,
-            p0uu,
-            p0uu,
-            1.0,
-            *iterations,
-            Some(pb_boot.clone()),
-        )
-        .map_err(|e| anyhow!("Bootstrap failed: {}", e))?;
-        self.bars.remove(&pb_neutral);
-        self.bars.remove(&pb_boot);
-
-        model.to_file(output, &result)?;
-        Ok((model, result))
-    }
+pub fn steady_state(alpha: f64, beta: f64) -> f64 {
+    (alpha * ((1.0 - alpha).powi(2) - (1.0 - beta).powi(2) - 1.0))
+        / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0))
 }
 
 #[cfg(test)]

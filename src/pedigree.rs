@@ -79,7 +79,8 @@ impl Pedigree {
     }
 
     pub fn to_file(&self, path: &Path) -> std::io::Result<()> {
-        let mut file = File::create(path.join("pedigree.txt")).unwrap();
+        println!("Writing pedigree to file: {}", path.display());
+        let mut file = File::create(path)?;
         let mut content = String::new();
         content += "time0\ttime1\ttime2\tD.value\n";
         for row in self.rows() {
@@ -176,11 +177,6 @@ impl Pedigree {
             node.rc_meth_lvl = Some(avg_meth_lvl);
             node.sites = Some(sites);
         }
-        let tmp0uu: f64 = nodes
-            .iter()
-            .map(|n| n.proportion_unmethylated.unwrap_or(0.0))
-            .sum::<f64>()
-            / nodes.len() as f64;
 
         let tmp0uu_meth_lvl = nodes
             .iter()

@@ -1,4 +1,4 @@
-use crate::*;
+use alphabeta::{divergence::genmatrix, pedigree::Pedigree, structs::Model};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ndarray::array;
 

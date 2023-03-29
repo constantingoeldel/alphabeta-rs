@@ -1,21 +1,26 @@
-use alphabeta::{arguments::AlphaBeta, extract};
+use std::fs;
+
+use alphabeta::{
+    alphabeta::steady_state, arguments::Windows as Args, extract::extract, genes::Region, progress,
+};
 use clap::Parser;
-use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressState, ProgressStyle};
-use std::{fmt::Write, fs::write, time::Duration};
+
 fn main() {
     let args = Args::parse();
     println!("Starting run {}", args.name);
 
-    let result = extract(args);
+    let result = extract(args.clone());
 
     match (result, args.alphabeta) {
         (Err(e), _) => println!("Error: {e}"),
         (Ok(_), false) => println!("Done"),
-        (Ok((max_gene_length, distribution)), true) => alphabeta(max_gene_length, distribution),
+        (Ok((max_gene_length, distribution)), true) => {
+            alphabeta_multiple(args, max_gene_length, distribution)
+        }
     }
 }
 
-fn alphabeta(max_gene_length: u32, distribution: Vec<i32>) {
+fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) {
     let regions = vec![
         (Region::Upstream, args.cutoff),
         (Region::Gene, max_gene_length),
@@ -27,51 +32,30 @@ fn alphabeta(max_gene_length: u32, distribution: Vec<i32>) {
     } else {
         (3 * 100) / args.window_step
     };
-    let multi = MultiProgress::new();
-    let pb = multi.add(ProgressBar::new(total_steps as u64));
-    pb.set_message("Progress ");
-    pb.enable_steady_tick(Duration::new(1, 0));
-    pb.set_style(
-        ProgressStyle::with_template(
-            "{msg} {bar:40.magenta/blue} [{elapsed}] {pos:>7}/{len:7} ETA: {eta}",
-        )
-        .unwrap()
-        .with_key("eta", |state: &ProgressState, w: &mut dyn Write| {
-            write!(
-                w,
-                "{}",
-                HumanDuration(Duration::from_secs(state.eta().as_secs()))
-            )
-            .unwrap();
-        }),
-    );
 
+    let (multi, pb) = progress::multi(total_steps as u64);
     for region in regions {
         let max = if args.absolute { region.1 } else { 100 };
 
         for window in (0..max).step_by(args.window_step as usize) {
             pb.inc(1);
 
-            let args = alphabeta::structs::Args::default(
+            let args = alphabeta::arguments::AlphaBeta::default(
                 args.output_dir
                     .join(region.0.to_string())
                     .join(window.to_string()),
             );
 
-            let alphabeta_result = alphabeta::AlphaBeta::new(args, &multi).run();
+            let alphabeta_result = alphabeta::alphabeta::run(args, &multi);
             match alphabeta_result {
                 Err(e) => println!("Error: {e}"),
-                Ok((model, errors)) => results.push((model, errors, region.0.clone())),
+                Ok((model, deviations, _)) => results.push((model, deviations, region.0.clone())),
             }
         }
     }
     pb.finish();
     let mut print = String::from("run;window;cg_count;region;alpha;beta;alpha_error;beta_error;1/2*(alpha+beta);pred_steady_state\n");
 
-    let steady_state = |alpha: f64, beta: f64| {
-        (alpha * ((1.0 - alpha).powi(2) - (1.0 - beta).powi(2) - 1.0))
-            / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0))
-    };
     dbg!(&distribution.len());
     for (i, ((model, sd, region), d)) in results.iter().zip(distribution.iter()).enumerate() {
         print += &format!(
@@ -91,7 +75,7 @@ fn alphabeta(max_gene_length: u32, distribution: Vec<i32>) {
 
     println!("{print}");
 
-    write(args.output_dir.join("results.txt"), print).expect("Could not save results to file.");
+    fs::write(args.output_dir.join("results.txt"), print).expect("Could not save results to file.");
     // let db = db::connect()
     //     .await
     //     .expect("Could not connect to database: Did you provide a connection string?");

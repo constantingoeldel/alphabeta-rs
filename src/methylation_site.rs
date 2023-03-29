@@ -600,7 +600,7 @@ mod tests {
             name: String::new(),
         };
 
-        let mut windows = Windows::new(100, args);
+        let mut windows = Windows::new(100, args.clone());
         for i in 1..100 {
             let cg = MethylationSite::new(i + 100, Strand::Sense);
             let upstream = cg.place_in_windows(&all_upstream_gene, &mut windows, &args);
@@ -652,7 +652,7 @@ mod tests {
             name: String::new(),
         };
 
-        let mut windows = Windows::new(1000, args);
+        let mut windows = Windows::new(1000, args.clone());
         assert!(windows.upstream.len() == 100);
         for i in 1..1000 {
             let cg = MethylationSite::new(i + 1000, Strand::Sense);
@@ -700,7 +700,7 @@ mod tests {
             window_step: 1,
             ..Default::default()
         };
-        let mut windows = Windows::new(1000, args);
+        let mut windows = Windows::new(1000, args.clone());
 
         cg_a.place_in_windows(&gene, &mut windows, &args);
         cg_b.place_in_windows(&gene, &mut windows, &args);
@@ -750,7 +750,7 @@ mod tests {
             window_step: 1,
             ..Default::default()
         };
-        let mut windows = Windows::new(100, args);
+        let mut windows = Windows::new(100, args.clone());
 
         cg_a.place_in_windows(&gene, &mut windows, &args);
         cg_b.place_in_windows(&gene, &mut windows, &args);
@@ -808,7 +808,7 @@ mod tests {
             name: String::new(),
         };
 
-        let mut windows = Windows::new(1000, args);
+        let mut windows = Windows::new(1000, args.clone());
         assert!(windows.upstream.len() == 100);
         for i in 1..1000 {
             let cg = MethylationSite::new(i + 1000, Strand::Antisense);
@@ -865,7 +865,7 @@ mod tests {
             name: String::new(),
         };
 
-        let mut windows = Windows::new(1000, args);
+        let mut windows = Windows::new(1000, args.clone());
         assert!(windows.upstream.len() == 1000);
         for i in 1..1000 {
             let cg = MethylationSite::new(i + 1000, Strand::Sense);

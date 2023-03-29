@@ -135,7 +135,7 @@ pub fn extract(args: arguments::Windows) -> Result<(u32, Vec<i32>)> {
             format!(
                 "{}/distribution_{}",
                 &args.output_dir.display(),
-                file_name(&file)
+                file_name(file)
             ),
             Windows::print_distribution(distribution),
         )

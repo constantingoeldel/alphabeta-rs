@@ -240,7 +240,7 @@ impl Windows {
         Ok(result)
     }
 
-    pub fn print_all_distributions(nodes: Vec<String>, distibutions: &Vec<Vec<i32>>) -> String {
+    pub fn print_all_distributions(nodes: Vec<String>, distibutions: &[Vec<i32>]) -> String {
         let mut output = String::new();
         for (_i, (values, node)) in distibutions.iter().zip(nodes.iter()).enumerate() {
             output.push_str(node);
