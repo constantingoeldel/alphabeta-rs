@@ -1,21 +1,21 @@
-# WT
-cargo run --release -- \
--m ../../methylome/within_gbM_genes/ \
--g ../../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
--o /mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/wt \
--e ../../methylome/edgelist.txt \
--n ../../methylome/nodelist.txt \
---alphabeta \
---name wildtype \
--s 1 -w 5 
+# # WT
+# cargo run --release --bin windows -- \
+# -m ../../methylome/within_gbM_genes/ \
+# -g ../../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
+# -o /mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/wt \
+# -e ../../methylome/edgelist.txt \
+# -n ../../methylome/nodelist.txt \
+# --alphabeta \
+# --name wildtype \
+# -s 1 -w 5 
 
 # WT
-cargo run --release -- \
--m ../../methylome/within_gbM_genes/ \
--g ../../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
--o ../../windows/wt \
--e ../../methylome/edgelist.txt \
--n ../../methylome/nodelist.txt \
+cargo run --release --bin windows -- \
+-m ../methylome/within_gbM_genes/ \
+-g ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
+-o ../windows/wt \
+-e ../methylome/edgelist.txt \
+-n ../methylome/nodelist.txt \
 --alphabeta \
 --name wildtype \
 -s 1 -w 5 

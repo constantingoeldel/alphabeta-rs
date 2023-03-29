@@ -55,9 +55,11 @@ pub fn set_up_output_dir(args: arguments::Windows, max_gene_length: u32) -> Resu
                 let window_dir = fs::read_dir(&path);
 
                 match window_dir {
-                    Ok(_) => continue,
+                    Ok(_) => {
+                        print_dev!("Directory already exists, skipping: {}", path);
+                    }
                     Err(_) => {
-                        fs::create_dir_all(&path).unwrap();
+                        fs::create_dir_all(&path).expect("Could not create output directory");
                         fs::write(path.to_owned() + "/nodelist.txt", nodelist)
                             .expect("Nodelist not writable at ");
                         fs::write(path.to_owned() + "/edgelist.txt", &edgelist).expect("msg");

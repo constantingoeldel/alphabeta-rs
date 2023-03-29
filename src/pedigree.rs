@@ -96,14 +96,12 @@ impl Pedigree {
     ) -> Result<(Self, f64), Error> {
         let nodes = fs::read_to_string(nodelist)?;
         let edges = fs::read_to_string(edgelist)?;
-
         let nodes: Vec<Node> = nodes
             .split(['\n', '\r'])
             .skip(1)
             .enumerate()
             .filter_map(|(i, line)| {
                 let mut entries = line.split([',', '\t', ' ']);
-
                 Some(Node {
                     id: i,
                     file: PathBuf::from(entries.next()?),
@@ -138,10 +136,10 @@ impl Pedigree {
 
         let mut nodes: Vec<Node> = nodes.iter().filter(|n| n.meth).cloned().collect();
         for node in nodes.iter_mut() {
-            let mut file = PathBuf::from(nodelist.parent().unwrap());
-            file.push(&node.file);
-            let f = File::open(&file)
-                .map_err(|_| anyhow!("Could not open node file: {}", file.display()))?;
+            // let mut file = PathBuf::from(nodelist.parent().unwrap());
+            // file.push(&node.file);
+            let f = File::open(&node.file)
+                .map_err(|_| anyhow!("Could not open node file: {}", node.file.display()))?;
             let reader = BufReader::new(f);
 
             let mut sites = Vec::new();
