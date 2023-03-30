@@ -13,7 +13,7 @@ fn main() {
 
     match result {
         Err(e) => println!("Error: {e}"),
-        Ok((model, deviations, pedigree)) => {
+        Ok((model, deviations, pedigree, obs_steady_state)) => {
             println!("##########");
             println!("Results:\n");
             println!("{model}");
@@ -22,6 +22,7 @@ fn main() {
                 "Estimated steady state {}",
                 steady_state(model.alpha, model.beta)
             );
+            println!("Observed steady state methylation {obs_steady_state}");
             println!("##########");
             pedigree
                 .to_file(&args.output.join("pedigree.txt"))

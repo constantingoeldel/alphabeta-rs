@@ -1,4 +1,10 @@
-use alphabeta::{divergence::genmatrix, pedigree::Pedigree, structs::Model};
+use alphabeta::{
+    alphabeta::steady_state,
+    divergence::{divergence, genmatrix, matrix_power},
+    pedigree::Pedigree,
+    structs::Model,
+};
+use argmin_math::ArgminMul;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use ndarray::array;
 
@@ -80,7 +86,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 
     c.bench_function("p_inf", |b| {
-        b.iter(|| p_uu_est(black_box(model.alpha), black_box(model.beta)))
+        b.iter(|| steady_state(black_box(model.alpha), black_box(model.beta)))
     });
     c.bench_function("integer conversion", |b| {
         b.iter(|| {

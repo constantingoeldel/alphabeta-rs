@@ -49,17 +49,20 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
             let alphabeta_result = alphabeta::alphabeta::run(args, &multi);
             match alphabeta_result {
                 Err(e) => println!("Error: {e}"),
-                Ok((model, deviations, _)) => results.push((model, deviations, region.0.clone())),
+                Ok((model, deviations, _, obs_meth_lvl)) => {
+                    results.push((model, deviations, region.0.clone(), obs_meth_lvl))
+                }
             }
         }
     }
     pb.finish();
-    let mut print = String::from("run;window;cg_count;region;alpha;beta;alpha_error;beta_error;1/2*(alpha+beta);pred_steady_state\n");
+    let mut print = String::from("run;window;cg_count;region;alpha;beta;alpha_error;beta_error;1/2*(alpha+beta);pred_steady_state;obs_steady_state\n");
 
-    dbg!(&distribution.len());
-    for (i, ((model, sd, region), d)) in results.iter().zip(distribution.iter()).enumerate() {
+    for (i, ((model, sd, region, obs_meth_lvl), d)) in
+        results.iter().zip(distribution.iter()).enumerate()
+    {
         print += &format!(
-            "{};{};{};{};{};{};{};{};{};{}\n",
+            "{};{};{};{};{};{};{};{};{};{};{}\n",
             args.name,
             i,
             d,
@@ -69,7 +72,8 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
             sd.alpha,
             sd.beta,
             0.5 * (model.alpha + model.beta),
-            steady_state(model.alpha, model.beta)
+            steady_state(model.alpha, model.beta),
+            obs_meth_lvl
         )
     }
 

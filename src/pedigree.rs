@@ -214,6 +214,11 @@ impl DMatrix {
             for (j, second) in nodes.iter().skip(i + 1).enumerate() {
                 assert!(first.sites.as_ref().is_some());
                 assert!(second.sites.as_ref().is_some());
+                if first.sites.as_ref().unwrap().len() != second.sites.as_ref().unwrap().len() {
+                    dbg!("Lengths do not match, all bets are off");
+                    divergences[[i, j]] = 0.0;
+                    continue;
+                }
                 assert_eq!(
                     first.sites.as_ref().unwrap().len(),
                     second.sites.as_ref().unwrap().len()

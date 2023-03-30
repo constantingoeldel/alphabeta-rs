@@ -9,7 +9,7 @@ use crate::{
     *,
 };
 
-pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, StandardDeviations, Pedigree)> {
+pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, StandardDeviations, Pedigree, f64)> {
     println!("Building pedigree...");
     let (pedigree, p0uu) =
         Pedigree::build(&args.nodelist, &args.edgelist, args.posterior_max_filter)
@@ -39,12 +39,17 @@ pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, StandardDeviation
     bars.remove(&pb_neutral);
     bars.remove(&pb_boot);
 
-    Ok((model, result, pedigree))
+    Ok((model, result, pedigree, 1.0 - p0uu))
 }
 
 pub fn steady_state(alpha: f64, beta: f64) -> f64 {
-    (alpha * ((1.0 - alpha).powi(2) - (1.0 - beta).powi(2) - 1.0))
-        / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0))
+    let pi_1 = (alpha * ((1.0 - alpha).powi(2) - (1.0 - beta).powi(2) - 1.0))
+        / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0));
+
+    let pi_2 = (4.0 * alpha * beta * (alpha + beta - 2.0))
+        / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0));
+
+    pi_1 + 0.5 * pi_2
 }
 
 #[cfg(test)]

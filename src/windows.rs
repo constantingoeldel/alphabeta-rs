@@ -11,7 +11,7 @@ use crate::{
     arguments::Windows as Args,
     files::lines_from_file,
     genes::{Gene, GenesByStrand, Region},
-    methylation_site::{MethylationSite, MethylationStatus},
+    methylation_site::MethylationSite,
     *,
 };
 
@@ -97,11 +97,12 @@ impl Windows {
             // } else {
             //     acc + cur.count_methylated as f64 / cur.count_total as f64
             // }
-            match cur.status {
-                MethylationStatus::U => acc,
-                MethylationStatus::I => acc + 0.5,
-                MethylationStatus::M => acc + 1.0,
-            }
+            // match cur.status {
+            //     MethylationStatus::U => acc,
+            //     MethylationStatus::I => acc + 0.5,
+            //     MethylationStatus::M => acc + 1.0,
+            // }
+            acc + cur.meth_lvl
         };
 
         let mut upstream: Vec<f64> = self

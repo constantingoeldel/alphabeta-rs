@@ -12,7 +12,7 @@ macro_rules! assert_close_epsilon {
 #[macro_export]
 macro_rules! assert_close {
     ($x:expr, $y:expr ) => {
-        if !(($x - $y).abs() < 1e-4) {
+        if ($x - $y).abs() > 1e-4 {
             panic!(
                 "assertion failed: `abs(left - right) < {}`, (left: `{}`, right: `{}`)",
                 1e-6, $x, $y
@@ -24,7 +24,7 @@ macro_rules! assert_close {
 #[macro_export]
 macro_rules! assert_close_10_percent {
     ($x:expr, $y:expr ) => {
-        if !(($x - $y).abs() < 0.1 * $y) {
+        if ($x - $y).abs() > 0.1 * $y {
             panic!(
                 "assertion failed: `abs(left - right) < 10 % `, (left: `{}`, right: `{}`)",
                 $x, $y

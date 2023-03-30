@@ -136,7 +136,7 @@ impl Model {
             let high = n + n.abs() * VARIANCE;
 
             if low >= high {
-                println!("Wrong order: Low >= high ({} >= {})", low, high);
+                println!("Wrong order: Low >= high ({low} >= {high})");
                 Uniform::new(high, low)
             } else {
                 Uniform::new(low, high)

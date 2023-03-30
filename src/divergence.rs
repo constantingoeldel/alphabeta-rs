@@ -4,6 +4,7 @@ use ndarray::array;
 
 use ndarray::Array2;
 
+use crate::alphabeta::steady_state;
 use crate::pedigree::Pedigree;
 
 #[derive(Debug)]
@@ -88,13 +89,8 @@ pub fn divergence(
         dt1t2.push(svt0[0] * (dt1t2_uu) + svt0[1] * (dt1t2_um) + svt0[2] * (dt1t2_mm));
     }
     // Pr(UU) at equilibrium given alpha and beta
-    let puuinf_est = p_uu_est(alpha, beta);
+    let puuinf_est = steady_state(alpha, beta);
     Divergence { dt1t2, puuinf_est }
-}
-
-pub fn p_uu_est(alpha: f64, beta: f64) -> f64 {
-    (beta * ((1.0 - beta).powi(2) - (1.0 - alpha).powi(2) - 1.0))
-        / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0))
 }
 
 pub fn genmatrix(alpha: f64, beta: f64) -> Array2<f64> {
@@ -126,7 +122,7 @@ mod test {
     #[test]
     fn test_p_uu_est() {
         // Compare estimated steady state methylation to R
-        assert_close!(p_uu_est(3.974271e-09, 1.519045e-07), 0.9745041);
+        assert_close!(steady_state(3.974271e-09, 1.519045e-07), 0.9745041);
         let _p = Model::new(1.0);
     }
 
