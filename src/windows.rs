@@ -295,9 +295,11 @@ impl Windows {
         bars: &MultiProgress,
     ) -> Result<Self> {
         // Check for results already present
-        if !args.force &&  let Ok(windows) = Self::load_existing(args.clone(), &file_name) {
-            println!("Skipping extraction as parsable files are found in output directory");
-            return Ok(windows);
+        if !args.force {
+            if let Ok(windows) = Self::load_existing(args.clone(), &file_name) {
+                println!("Skipping extraction as parsable files are found in output directory");
+                return Ok(windows);
+            }
         }
 
         let mut last_gene: Option<&Gene> = None;

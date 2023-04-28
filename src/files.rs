@@ -24,7 +24,11 @@ pub fn load_methylome(methylome: &PathBuf) -> Result<Vec<PathBuf>> {
     let methylome_dir = fs::read_dir(methylome).or(Err(Error::File(methylome.to_owned())))?;
     let methylome_files: Vec<PathBuf> = methylome_dir
         .map(|f| f.as_ref().unwrap().path())
-        .filter(|path| !path.extension().contains(&"tsv") && !path.extension().contains(&"fn")) // Filter out tsv and fn files, which are often nodelist/edgelist files.
+        .filter(|path| {
+            path.extension().is_some()
+                && !path.extension().unwrap().to_str().unwrap().contains(&"tsv")
+                && !path.extension().unwrap().to_str().unwrap().contains(&"fn")
+        }) // Filter out tsv and fn files, which are often nodelist/edgelist files.
         .collect();
     if methylome_files.is_empty() {
         bail!(Error::Simple("Could not find any files in the methylome directory. Please check your input. Files with .tsv or .fn extensions are ignored."))

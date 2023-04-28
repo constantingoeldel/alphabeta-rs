@@ -1,6 +1,3 @@
-#![feature(option_result_contains)]
-#![feature(let_chains)]
-
 pub mod ABneutral;
 pub mod BootModel;
 pub mod alphabeta;
