@@ -6,9 +6,34 @@ Additionally, this repository also contains a program for creating metaprofiles 
 
 ## How to use
 
-### Prebuilt binaries
+### Dependencies
 
-In the releases tab, you can find prebuilt binaries for Windows, Linux and MacOS. These should work out of the box, but if they don't, please [open an issue](https://github.com/constantingoeldel/alphabeta-rs/issues/new). You'll need to download the program for your platform, unzip it and then run it from the command line.
+The program depends on [OpenBLAS](https://www.openblas.net/) for fast matrix calculations. On Linux, you can install them with your package manager, on MacOS you can use [Homebrew](https://brew.sh/). On Windows, you can download prebuilt binaries from the [OpenBLAS website](https://www.openblas.net/).
+
+Original Installation instructions [here](https://github.com/xianyi/OpenBLAS/wiki/Precompiled-installation-packages).
+
+Debian/Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install libopenblas-dev
+```
+
+If you don't have sudo rights, ask your system administrator.
+
+MacOS:
+
+```bash
+brew install openblas
+```
+
+Windows:
+
+Download the prebuilt binaries from the [OpenBLAS website](https://www.openblas.net/)(Big .zip button).
+
+<!-- ### Prebuilt binaries
+
+In the releases tab, you can find prebuilt binaries for Windows, Linux and MacOS. These should work out of the box, but if they don't, please [open an issue](https://github.com/constantingoeldel/alphabeta-rs/issues/new). You'll need to download the program for your platform, unzip it and then run it from the command line. -->
 
 ### Building from source
 

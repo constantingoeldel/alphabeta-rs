@@ -349,8 +349,8 @@ mod tests {
 
     #[test]
     fn wildtype_pedigree() {
-        let nodelist = Path::new("./data/desired_output/nodelist.txt");
-        let edgelist = Path::new("./data/desired_output/edgelist.txt");
+        let nodelist = Path::new("./data/nodelist.txt");
+        let edgelist = Path::new("./data/edgelist.txt");
         let comparison = Pedigree::from_file(
             "./data/desired_output/pedigree-pdata_epimutation_rate_estimation_window_gene_0.txt",
         );
