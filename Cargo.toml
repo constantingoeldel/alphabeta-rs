@@ -2,6 +2,9 @@
 name = "alphabeta"
 version = "0.1.0"
 edition = "2021"
+description = "Tools for analysing epigenetic data."
+license = "GPL-3.0"
+repository = "https://github.com/constantingoeldel/alphabeta-rs"
 
 [lib]
 name = "alphabeta"
