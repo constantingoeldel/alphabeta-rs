@@ -6,43 +6,10 @@ Additionally, this repository also contains a program for creating metaprofiles 
 
 ## How to use
 
-### Dependencies
-
-The program depends on [OpenBLAS](https://www.openblas.net/) for fast matrix calculations. On Linux, you can install them with your package manager, on MacOS you can use [Homebrew](https://brew.sh/). On Windows, you can download prebuilt binaries from the [OpenBLAS website](https://www.openblas.net/).
-
-Original Installation instructions [here](https://github.com/xianyi/OpenBLAS/wiki/Precompiled-installation-packages).
-
-Debian/Ubuntu:
+You'll need to install [Rust](https://www.rust-lang.org/tools/install), the programming language used for this project. Then enter the following commands into your terminal:
 
 ```bash
-sudo apt update
-sudo apt install libopenblas-dev
-```
-
-If you don't have sudo rights, ask your system administrator.
-
-MacOS:
-
-```bash
-brew install openblas
-```
-
-Windows:
-
-Download the prebuilt binaries from the [OpenBLAS website](https://www.openblas.net/) (Big .zip button). For building from source, see [this](https://github.com/blas-lapack-rs/openblas-src#windows-and-vcpkg).
-
-<!-- ### Prebuilt binaries
-
-In the releases tab, you can find prebuilt binaries for Windows, Linux and MacOS. These should work out of the box, but if they don't, please [open an issue](https://github.com/constantingoeldel/alphabeta-rs/issues/new). You'll need to download the program for your platform, unzip it and then run it from the command line. -->
-
-### Building from source
-
-If you are somewhat familiar with coding and git, I'd recommend this approach: You'll need to install [Rust](https://www.rust-lang.org/tools/install) and [git](https://git-scm.com/downloads) first. Then, you can clone this repository and build the program yourself:
-
-```bash
-git clone https://github.com/constantingoeldel/alphabeta-rs.git
-cd alphabeta-rs
-cargo install --path .
+cargo install alphabeta
 ```
 
 This will install the programs on your system. You can then ensure everything works by running:
@@ -52,6 +19,8 @@ alphabeta --help
 # and
 metaprofile --help
 ```
+
+Windows is currently not supported, but using [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) on Windows works.
 
 If you received an error message about libopenblas, you will need to run the code with cargo (I don't really understand this issue)
 
@@ -63,12 +32,10 @@ cargo run --release --bin metaprofile
 
 ### Updating
 
-If you want to use a new version of the program, either download the new binaries from the same source or run:
+If you want to use a new version of the program, just run the following command again:
 
 ```bash
-cd alphabeta-rs
-git pull
-cargo install --path .
+cargo install alphabeta
 ```
 
 ## Parameters
