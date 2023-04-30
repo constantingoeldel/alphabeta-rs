@@ -1,1 +1,1 @@
-sudo apt-get install -y libopenblas-dev
+apt-get install -y libopenblas-dev
