@@ -39,8 +39,6 @@ jobs:
             archive: zip
     steps:
       - uses: actions/checkout@master
-      - name: Install openblas
-        run: sudo apt-get install -y libopenblas-dev
       - name: Compile and release
         uses: rust-build/rust-build.action@v1.4.3
         env:
@@ -48,3 +46,5 @@ jobs:
         with:
           RUSTTARGET: ${{ matrix.target }}
           ARCHIVE_TYPES: ${{ matrix.archive }}
+      - name: Install openblas
+        run: sudo apt-get install -y libopenblas-dev
