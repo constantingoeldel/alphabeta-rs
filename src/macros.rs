@@ -22,7 +22,7 @@ macro_rules! assert_close {
 }
 
 #[macro_export]
-macro_rules! assert_close_10_percent {
+macro_rules! assert_within_10_percent {
     ($x:expr, $y:expr ) => {
         if ($x - $y).abs() > 0.1 * $y {
             panic!(

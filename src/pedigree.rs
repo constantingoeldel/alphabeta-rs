@@ -187,7 +187,6 @@ impl Pedigree {
         //     (tmp0uu - tmp0uu_meth_lvl).abs() / tmp0uu
         // );
 
-        //  println!("finalizing pedigree data...");
         let divergence = DMatrix::from(&nodes, posterior_max_filter);
         let pedigree = divergence.convert(&nodes, &edges);
         Ok((pedigree, tmp0uu_meth_lvl))
@@ -350,8 +349,8 @@ mod tests {
 
     #[test]
     fn wildtype_pedigree() {
-        let nodelist = Path::new("./data/desired_output/nodelist.txt");
-        let edgelist = Path::new("./data/desired_output/edgelist.txt");
+        let nodelist = Path::new("./data/nodelist.txt");
+        let edgelist = Path::new("./data/edgelist.txt");
         let comparison = Pedigree::from_file(
             "./data/desired_output/pedigree-pdata_epimutation_rate_estimation_window_gene_0.txt",
         );
