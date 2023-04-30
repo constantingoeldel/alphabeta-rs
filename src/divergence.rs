@@ -115,7 +115,7 @@ pub fn genmatrix(alpha: f64, beta: f64) -> Array2<f64> {
 
 #[cfg(test)]
 mod test {
-    use crate::{structs::Model, *};
+    use crate::*;
 
     use super::*;
 
@@ -123,7 +123,6 @@ mod test {
     fn test_p_uu_est() {
         // Compare estimated steady state methylation to R
         assert_close!(steady_state(3.974271e-09, 1.519045e-07), 0.9745041);
-        let _p = Model::new(1.0);
     }
 
     #[test]

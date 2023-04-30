@@ -55,13 +55,13 @@ pub fn steady_state(alpha: f64, beta: f64) -> f64 {
 mod tests {
     use std::path::Path;
 
-    use crate::{assert_close, assert_close_10_percent, pedigree::Pedigree, ABneutral, BootModel};
+    use crate::{assert_close, assert_within_10_percent, pedigree::Pedigree, ABneutral, BootModel};
 
     #[test] // Recommended to run with --release
     fn end_to_end() {
         let (pedigree, p0uu) = Pedigree::build(
-            Path::new("./data/desired_output/nodelist.txt"),
-            Path::new("./data/desired_output/edgelist.txt"),
+            Path::new("./data/nodelist.txt"),
+            Path::new("./data/edgelist.txt"),
             0.99,
         )
         .expect("Error while building pedigree: ");
@@ -70,9 +70,9 @@ mod tests {
         let result = BootModel::run(&pedigree, &model, p0uu, p0uu, 1.0, 200, None)
             .expect("Bootstrap failed");
         println!("{result}");
-        assert_close_10_percent!(model.alpha, 5.7985750419976e-05);
-        assert_close_10_percent!(model.beta, 0.00655710970515347);
-        assert_close_10_percent!(p0uu, 0.991008120326199);
+        assert_within_10_percent!(model.alpha, 5.7985750419976e-05);
+        assert_within_10_percent!(model.beta, 0.00655710970515347);
+        assert_within_10_percent!(p0uu, 0.991008120326199);
         assert_close!(model.alpha, 5.7985750419976e-05);
         assert_close!(model.beta, 0.00655710970515347);
         assert_close!(p0uu, 0.991008120326199);
