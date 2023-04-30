@@ -93,22 +93,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo run --release --target x86_64-unknown-linux-musl -- generate --fail about.hbs
 
-  # Build `mdBook` documentation and upload it as a temporary build artifact
-  doc-book:
-    name: Build the book
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v3
-      - run: |
-          set -e
-          curl -L https://github.com/rust-lang-nursery/mdBook/releases/download/v0.4.21/mdbook-v0.4.21-x86_64-unknown-linux-gnu.tar.gz | tar xzf -
-          echo `pwd` >> $GITHUB_PATH
-      - run: (cd docs && mdbook build)
-      - uses: actions/upload-artifact@v1
-        with:
-          name: doc-book
-          path: docs/book
-
   publish-check:
     name: Publish Check
     runs-on: ubuntu-22.04

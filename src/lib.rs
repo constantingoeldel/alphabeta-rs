@@ -1,7 +1,7 @@
-pub mod ABneutral;
-pub mod BootModel;
+pub mod ab_neutral;
 pub mod alphabeta;
 pub mod arguments;
+pub mod boot_model;
 pub mod divergence;
 pub mod error;
 pub mod extract;

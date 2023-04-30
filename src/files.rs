@@ -26,8 +26,8 @@ pub fn load_methylome(methylome: &PathBuf) -> Result<Vec<PathBuf>> {
         .map(|f| f.as_ref().unwrap().path())
         .filter(|path| {
             path.extension().is_some()
-                && !path.extension().unwrap().to_str().unwrap().contains(&"tsv")
-                && !path.extension().unwrap().to_str().unwrap().contains(&"fn")
+                && !path.extension().unwrap().to_str().unwrap().contains("tsv")
+                && !path.extension().unwrap().to_str().unwrap().contains("fn")
         }) // Filter out tsv and fn files, which are often nodelist/edgelist files.
         .collect();
     if methylome_files.is_empty() {
