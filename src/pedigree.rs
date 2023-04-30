@@ -187,7 +187,6 @@ impl Pedigree {
         //     (tmp0uu - tmp0uu_meth_lvl).abs() / tmp0uu
         // );
 
-        //  println!("finalizing pedigree data...");
         let divergence = DMatrix::from(&nodes, posterior_max_filter);
         let pedigree = divergence.convert(&nodes, &edges);
         Ok((pedigree, tmp0uu_meth_lvl))
