@@ -15,8 +15,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Install openblas
-        run: sudo apt-get -y install libopenblas-dev
       - name: Build
         run: cargo build --release --verbose
       - name: Run tests
@@ -39,8 +37,6 @@ jobs:
             archive: zip
     steps:
       - uses: actions/checkout@master
-      - name: Install openblas
-        run: sudo apt-get -y install libopenblas-dev
       - name: Compile and release
         uses: rust-build/rust-build.action@v1.4.3
         env:
