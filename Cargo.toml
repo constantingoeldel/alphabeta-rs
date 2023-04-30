@@ -24,7 +24,7 @@ argmin-math = { version = "0.3", features = ["ndarray_latest-serde", "nalgebra_l
 float-ord = "0.3.2"
 ndarray = { version = "0.15.0",  features = ["blas"]}
 blas-src = { version = "0.8.0",  features = ["openblas"] }
-openblas-src = { version = "0.10",  features = ["cblas"] }
+openblas-src = { version = "0.10",  features = ["system"] }
 rand = "0.8.5"
 rayon = "1.6.1"
 petgraph = "0.6.2"
