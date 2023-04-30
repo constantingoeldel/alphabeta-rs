@@ -92,20 +92,21 @@ impl Default for Windows {
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 pub struct AlphaBeta {
+    /// Number of iterations to run for Nelder-Mead optimization, even 100 is enough
     #[arg(short, long, default_value_t = 1000)]
     pub iterations: u64,
 
-    /// Provide an edgefile
+    /// Relative or absolute path to an edgelist, see /data for an example
     #[arg(long, short)]
-    pub edgelist: std::path::PathBuf,
+    pub edges: std::path::PathBuf,
 
-    /// Provide a nodefile - paths will be updated to match the output directory
+    /// Relative or absolute path to a nodelist, see /data for an example
     #[arg(long, short)]
-    pub nodelist: std::path::PathBuf,
-
+    pub nodes: std::path::PathBuf,
+    /// Minimum posterior probability for a singe basepair read to be included in the estimation
     #[arg(long, short, default_value_t = 0.99)]
     pub posterior_max_filter: f64,
-
+    /// Relative or absolute path to an output directory, must exist, EXISTING FILES WILL BE OVERWRITTEN
     #[arg(long, short)]
     pub output: std::path::PathBuf,
 }
@@ -113,8 +114,8 @@ pub struct AlphaBeta {
 impl AlphaBeta {
     pub fn default(output_dir: PathBuf) -> Self {
         Self {
-            edgelist: output_dir.join("edgelist.txt"),
-            nodelist: output_dir.join("nodelist.txt"),
+            edges: output_dir.join("edgelist.txt"),
+            nodes: output_dir.join("nodelist.txt"),
             output: output_dir,
             posterior_max_filter: 0.99,
             iterations: 100,

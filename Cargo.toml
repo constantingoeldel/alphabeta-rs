@@ -12,8 +12,8 @@ name = "alphabeta"
 path = "src/cli/alphabeta.rs"
 
 [[bin]]
-name = "windows"
-path = "src/cli/windows.rs"
+name = "metaprofile"
+path = "src/cli/metaprofile.rs"
 
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

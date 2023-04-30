@@ -11,9 +11,8 @@ use crate::{
 
 pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, StandardDeviations, Pedigree, f64)> {
     println!("Building pedigree...");
-    let (pedigree, p0uu) =
-        Pedigree::build(&args.nodelist, &args.edgelist, args.posterior_max_filter)
-            .map_err(|e| anyhow!("Error while building pedigree: {}", e))?;
+    let (pedigree, p0uu) = Pedigree::build(&args.nodes, &args.edges, args.posterior_max_filter)
+        .map_err(|e| anyhow!("Error while building pedigree: {}", e))?;
 
     let (pb_neutral, pb_boot) = specific(bars, args.iterations);
 
