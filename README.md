@@ -29,7 +29,7 @@ brew install openblas
 
 Windows:
 
-Download the prebuilt binaries from the [OpenBLAS website](https://www.openblas.net/)(Big .zip button).
+Download the prebuilt binaries from the [OpenBLAS website](https://www.openblas.net/) (Big .zip button). For building from source, see [this](https://github.com/blas-lapack-rs/openblas-src#windows-and-vcpkg).
 
 <!-- ### Prebuilt binaries
 
@@ -59,6 +59,16 @@ If you received an error message about libopenblas, you will need to run the cod
 cargo run --release --bin alphabeta
 # or
 cargo run --release --bin metaprofile
+```
+
+### Updating
+
+If you want to use a new version of the program, either download the new binaries from the same source or run:
+
+```bash
+cd alphabeta-rs
+git pull
+cargo install --path .
 ```
 
 ## Parameters
@@ -118,6 +128,15 @@ Step determines the distance between the start of each window. If you supply `--
 
 ## Examples
 
+### Run alphabeta
+
+```bash
+alphabeta \
+--edges ./data/edgelist.txt \
+--nodes ./data/nodelist.txt \
+--output ./data/output
+```
+
 ### Create a metaprofile and feed it into AlphaBeta
 
 ```bash
@@ -130,13 +149,4 @@ metaprofile \
 --alphabeta \
 --name wildtype \
 --window-step 1 --window-size 5
-```
-
-### Run alphabeta
-
-```bash
-alphabeta \
---edges ../methylome/edgelist.txt \
---nodes ../methylome/nodelist.txt \
---output /mnt/extStorage/workingDir/./windows/wt
 ```

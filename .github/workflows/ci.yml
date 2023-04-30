@@ -46,5 +46,6 @@ jobs:
         with:
           RUSTTARGET: ${{ matrix.target }}
           ARCHIVE_TYPES: ${{ matrix.archive }}
+          PRE_BUILD: "pre_ci.sh"
       - name: Install openblas
         run: sudo apt-get install -y libopenblas-dev
