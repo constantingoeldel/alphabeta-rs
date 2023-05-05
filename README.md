@@ -22,13 +22,18 @@ metaprofile --help
 
 Windows is currently not supported, but using [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) on Windows works.
 
-If you received an error message about libopenblas, you will need to run the code with cargo (I don't really understand this issue)
+<details>
+<summary>I get an error!</summary>
+
+If you received an error message about libopenblas, you will need to run the code from inside the repository with cargo (I don't really understand this issue)
 
 ```bash
 cargo run --release --bin alphabeta
 # or
 cargo run --release --bin metaprofile
 ```
+
+</details>
 
 ### Updating
 
