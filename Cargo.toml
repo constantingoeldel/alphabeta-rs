@@ -1,7 +1,10 @@
 [package]
 name = "alphabeta"
-version = "0.1.0"
+version = "0.1.4"
 edition = "2021"
+description = "Tools for analysing epigenetic data."
+license = "GPL-3.0"
+repository = "https://github.com/constantingoeldel/alphabeta-rs"
 
 [lib]
 name = "alphabeta"
@@ -24,7 +27,7 @@ argmin-math = { version = "0.3", features = ["ndarray_latest-serde", "nalgebra_l
 float-ord = "0.3.2"
 ndarray = { version = "0.15.0",  features = ["blas"]}
 blas-src = { version = "0.8.0",  features = ["openblas"] }
-openblas-src = { version = "0.10",  features = ["system"] }
+openblas-src = { version = "0.10",  features = ["static"] }
 rand = "0.8.5"
 rayon = "1.6.1"
 petgraph = "0.6.2"

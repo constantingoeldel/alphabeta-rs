@@ -1,5 +1,6 @@
 use clap::{command, Parser};
 use std::path::PathBuf;
+use std::time::SystemTime;
 
 /// simple tool to separate a methylome by position within a gene
 #[derive(Parser, Debug, Clone)]
@@ -54,7 +55,7 @@ pub struct Windows {
     pub alphabeta: bool,
 
     /// Name of the run to be used when storing the result in Postgres
-    #[arg(long, default_value_t = format!("{:?}", std::time::Instant::now()))]
+    #[arg(long, default_value_t = format!("Anonymous Run {}", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()))]
     pub name: String,
 
     /// Overwrite existing content in output directory? If false (default) it will reuse existing windows
