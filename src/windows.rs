@@ -28,13 +28,14 @@ impl Windows {
         let gene_window_count = if args.absolute {
             max_gene_length / args.window_step
         } else {
-            100
+            100 / args.window_step
         };
         let up_down_window_count = if args.absolute {
             args.cutoff / args.window_step
         } else {
-            100
+            100 / args.window_step
         };
+        dbg!(gene_window_count, up_down_window_count);
         Windows {
             upstream: vec![Vec::new(); up_down_window_count as usize],
             gene: vec![Vec::new(); gene_window_count as usize],
@@ -274,7 +275,6 @@ impl Windows {
                     .append(true)
                     .create(true)
                     .open(&output_file)?;
-
                 let metadata = file.metadata();
                 if metadata.unwrap().len() == 0 {
                     // On first write to file, create header line
