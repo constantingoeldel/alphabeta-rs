@@ -344,6 +344,10 @@ impl MethylationSite {
         genome: &'long [GenesByStrand],
         args: &Args,
     ) -> Option<&'long Gene> {
+        if self.chromosome > genome.len() as u8 {
+            return None;
+        }
+
         let chromosome = &genome[(self.chromosome - 1) as usize];
         let strand: &Vec<Gene> = match self.strand {
             Strand::Sense => &chromosome.sense, // This is a performance hit. Is there a better way to do this?

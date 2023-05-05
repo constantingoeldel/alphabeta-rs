@@ -1,6 +1,6 @@
 [package]
 name = "alphabeta"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 description = "Tools for analysing epigenetic data."
 license = "GPL-3.0"

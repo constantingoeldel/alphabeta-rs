@@ -9,6 +9,30 @@ pub fn set_up_output_dir(args: arguments::Windows, max_gene_length: u32) -> Resu
     // fs::remove_dir_all(&args.output_dir).unwrap();
     // fs::create_dir(&args.output_dir).unwrap();
 
+    let sides = vec![
+        ("upstream", args.cutoff),
+        ("gene", max_gene_length),
+        ("downstream", args.cutoff),
+    ];
+
+    for side in &sides {
+        let max = if args.absolute { side.1 } else { 100 };
+        let side = side.0;
+
+        for window in (0..max).step_by(args.window_step as usize) {
+            let path = format!("{}/{}/{}", &args.output_dir.to_string_lossy(), side, window);
+            let window_dir = fs::read_dir(&path);
+            match window_dir {
+                Ok(_) => {
+                    print_dev!("Directory already exists, skipping: {}", path);
+                }
+                Err(_) => {
+                    fs::create_dir_all(&path).expect("Could not create output directory");
+                }
+            };
+        }
+    }
+
     if args.alphabeta {
         // If alphabeta is set, a nodelist and edgelist are required, this is checked for in lib.rs
         let edgelist = fs::read_to_string(
@@ -19,12 +43,6 @@ pub fn set_up_output_dir(args: arguments::Windows, max_gene_length: u32) -> Resu
             args.nodes
                 .expect("Nodelist must be provided when alphabeta runs"),
         )?;
-
-        let sides = vec![
-            ("upstream", args.cutoff),
-            ("gene", max_gene_length),
-            ("downstream", args.cutoff),
-        ];
 
         for side in sides {
             let max = if args.absolute { side.1 } else { 100 };
@@ -52,19 +70,10 @@ pub fn set_up_output_dir(args: arguments::Windows, max_gene_length: u32) -> Resu
                 }
 
                 let path = format!("{}/{}/{}", &args.output_dir.to_string_lossy(), side, window);
-                let window_dir = fs::read_dir(&path);
 
-                match window_dir {
-                    Ok(_) => {
-                        print_dev!("Directory already exists, skipping: {}", path);
-                    }
-                    Err(_) => {
-                        fs::create_dir_all(&path).expect("Could not create output directory");
-                        fs::write(path.to_owned() + "/nodelist.txt", nodelist)
-                            .expect("Nodelist not writable at ");
-                        fs::write(path.to_owned() + "/edgelist.txt", &edgelist).expect("msg");
-                    }
-                };
+                fs::write(path.to_owned() + "/nodelist.txt", nodelist)
+                    .expect("Nodelist not writable at ");
+                fs::write(path.to_owned() + "/edgelist.txt", &edgelist).expect("msg");
             }
         }
     }
