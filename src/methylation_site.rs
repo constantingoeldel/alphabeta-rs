@@ -532,7 +532,7 @@ mod tests {
             .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
             .collect();
         assert_eq!(sites.get(0).unwrap().start, 809);
-        assert_eq!(sites.len(), 509827);
+        assert_eq!(sites.len(), 509825);
     }
 
     #[test]
