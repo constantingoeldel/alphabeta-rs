@@ -20,4 +20,6 @@ pub enum Error {
 
     #[error("{0}")]
     Simple(&'static str),
+    #[error("Methylation site could not be parsed: Wrong format")]
+    MethlyationSiteFormat,
 }
