@@ -158,7 +158,7 @@ impl MethylationSite {
                         })
                     },
                 )
-                .unwrap_or(Err(Error::Simple("Wrong format")))
+                .unwrap_or(Err(Error::MethlyationSiteFormat))
         };
 
         let second_format = |s: &str| {
@@ -202,7 +202,7 @@ impl MethylationSite {
                         })
                     },
                 )
-                .unwrap_or(Err(Error::Simple("Wrong format")))
+                .unwrap_or(Err(Error::MethlyationSiteFormat))
         };
 
         let third_format = |s: &str| {
@@ -247,7 +247,7 @@ impl MethylationSite {
                         })
                     },
                 )
-                .unwrap_or(Err(Error::Simple("Wrong format")))
+                .unwrap_or(Err(Error::MethlyationSiteFormat))
         };
 
         // Chromatin State files
@@ -271,7 +271,7 @@ impl MethylationSite {
                         status: MethylationStatus::U,
                     })
                 })
-                .unwrap_or(Err(Error::Simple("Wrong format")))
+                .unwrap_or(Err(Error::MethlyationSiteFormat))
         };
 
         // #bedGraph section chr1:1-3480
@@ -300,14 +300,33 @@ impl MethylationSite {
                         status: MethylationStatus::U,
                     })
                 })
-                .unwrap_or(Err(Error::Simple("Wrong format")))
+                .unwrap_or(Err(Error::MethlyationSiteFormat))
+        };
+        // Heterogeneity Score Files
+        // Requested by Patrick Wolf
+        // chr | start | end | score | _ | _
+        let heterogenity_score_files = |s: &str| {
+            dbg!(s);
+            s.split(['\t', ' '])
+                .collect_tuple()
+                .map(|(chromosome, start, end, _score)| {
+                    dbg!(chromosome, start, end);
+                    Ok(MethylationSite {
+                        chromosome: chromosome.parse()?,
+                        start: start.parse()?,
+                        end: end.parse()?,
+                        ..Default::default()
+                    })
+                })
+                .unwrap_or(Err(Error::MethlyationSiteFormat))
         };
 
         let results: Result<MethylationSite, crate::error::Error> = first_format(s)
             .or_else(|_| second_format(s))
             .or_else(|_| third_format(s))
             .or_else(|_| chromatin_state(s))
-            .or_else(|_| bigwig_format(s));
+            .or_else(|_| bigwig_format(s))
+            .or_else(|_| heterogenity_score_files(s));
 
         match results {
             Ok(methylation_site) => Some(methylation_site),
@@ -466,6 +485,8 @@ impl Display for MethylationSite {
 #[cfg(test)]
 mod tests {
 
+    use std::fs::read_to_string;
+
     use super::MethylationSite;
     use crate::{
         arguments::Windows as Args,
@@ -501,6 +522,17 @@ mod tests {
         let line = "X	23151	+	CG	0	8	0.9999	U	0.0025";
         let cg = MethylationSite::from_methylome_file_line(line, false);
         assert!(cg.is_none());
+    }
+
+    #[test]
+    fn test_heterogenity_file_format() {
+        let file = read_to_string("data/heterogenity_score_files.txt").unwrap();
+        let sites: Vec<MethylationSite> = file
+            .split('\n')
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .collect();
+        assert_eq!(sites.get(0).unwrap().start, 809);
+        assert_eq!(sites.len(), 509827);
     }
 
     #[test]
