@@ -45,9 +45,14 @@ pub fn extract(args: arguments::Windows) -> Result<(u32, Vec<i32>)> {
     // number of different chromosomes assuming they are named from 1 to highest
     let chromosome_count = genes
         .iter()
-        .max_by_key(|g| g.chromosome)
-        .unwrap()
-        .chromosome;
+        .map(|g| g.chromosome)
+        .fold(vec![], |acc, cur| {
+            if !acc.contains(&cur) {
+                acc.push(cur)
+            }
+            acc
+        })
+        .len();
 
     genes.sort_by_key(|g| g.start); // Sort genes by start bp (propably already the case), needed for binary search
 

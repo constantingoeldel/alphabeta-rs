@@ -22,4 +22,7 @@ pub enum Error {
     Simple(&'static str),
     #[error("Methylation site could not be parsed: Wrong format")]
     MethlyationSiteFormat,
+
+    #[error("Chromosome could not be parsed from this string: {0}")]
+    Chromosome(String),
 }

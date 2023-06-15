@@ -77,6 +77,13 @@ pub fn run(
     pb.finish();
 
     let results = results.into_inner().unwrap();
+
+    dbg!(results.shape());
+
+    plot::bootstrap(
+        results.column(0).to_slice().unwrap(),
+        results.column(1).to_slice().unwrap(),
+    )?;
     // Standard deviations
     let sd_alpha = results.column(0).std(1.0);
     let sd_beta = results.column(1).std(1.0);

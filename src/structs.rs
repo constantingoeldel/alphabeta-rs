@@ -24,6 +24,27 @@ pub struct Model {
     pub weight: f64,
     pub intercept: f64,
 }
+
+#[derive(Debug)]
+pub struct ModelWithSD {
+    pub alpha: f64,
+    pub beta: f64,
+    pub sd_alpha: f64,
+    pub sd_beta: f64,
+}
+
+impl ModelWithSD {
+    pub fn random() -> Self {
+        let mut rng = thread_rng();
+        Self {
+            alpha: 10.0_f64.powf(rng.sample(Uniform::new(-3.0, -2.0))),
+            beta: 10.0_f64.powf(rng.sample(Uniform::new(-3.0, -2.0))),
+            sd_alpha: 10.0_f64.powf(rng.sample(Uniform::new(-5.0, -4.0))),
+            sd_beta: 10.0_f64.powf(rng.sample(Uniform::new(-5.0, -4.0))),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct StandardDeviations {
     pub alpha: f64,

@@ -72,11 +72,11 @@ mod tests {
         let result = boot_model::run(&pedigree, &model, p0uu, p0uu, 1.0, 200, None)
             .expect("Bootstrap failed");
         println!("{result}");
-        // assert_within_10_percent!(model.alpha, 5.7985750419976e-05);
-        // assert_within_10_percent!(model.beta, 0.00655710970515347);
-        // assert_within_10_percent!(p0uu, 0.991008120326199);
-        // assert_close!(model.alpha, 5.7985750419976e-05);
-        // assert_close!(model.beta, 0.00655710970515347);
-        // assert_close!(p0uu, 0.991008120326199);
+        assert_within_10_percent!(model.alpha, 5.7985750419976e-05);
+        assert_within_10_percent!(model.beta, 0.00655710970515347);
+        assert_within_10_percent!(p0uu, 0.991008120326199);
+        assert_close!(model.alpha, 5.7985750419976e-05);
+        assert_close!(model.beta, 0.00655710970515347);
+        assert_close!(p0uu, 0.991008120326199);
     }
 }

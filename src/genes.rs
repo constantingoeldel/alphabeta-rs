@@ -4,6 +4,7 @@ use itertools::Itertools;
 
 use crate::{
     error::{self, Error},
+    methylation_site::Chromosome,
     print_dev,
 };
 
@@ -76,7 +77,7 @@ impl Display for Region {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Gene {
-    pub chromosome: u8,
+    pub chromosome: Chromosome,
     pub start: u32,
     pub end: u32,
     pub name: String,
@@ -131,7 +132,7 @@ impl Gene {
                 .map(|(chromosome, start, end, name, annotation, strand)| {
                     let strand: Strand = strand.try_into()?;
                     Ok(Gene {
-                        chromosome: chromosome.parse::<u8>()?,
+                        chromosome: chromosome.try_into()?,
                         start: start.parse::<u32>()?,
                         end: end.parse::<u32>()?,
                         name: String::from(name),

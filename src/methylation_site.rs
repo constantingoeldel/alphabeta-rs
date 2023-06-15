@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use crate::Error;
 use arguments::Windows as Args;
 use itertools::Itertools;
 
@@ -29,7 +30,7 @@ use crate::{
 ///
 #[derive(Clone, PartialEq, Debug)]
 pub struct MethylationSite {
-    pub chromosome: u8,
+    pub chromosome: Chromosome,
     pub start: u32,
     pub end: u32,
     pub strand: Strand,
@@ -43,10 +44,34 @@ pub struct MethylationSite {
     pub context_trinucleotide: String,
 }
 
+#[derive(Clone, PartialEq, Debug, Eq)]
+pub enum Chromosome {
+    Regular(u8),
+    Mitochondrial,
+    Chloroplast,
+}
+
+impl TryFrom<&str> for Chromosome {
+    type Error = Error;
+    fn try_from(s: &str) -> Result<Self, Error> {
+        let s = s.trim_start_matches("chr");
+        match s {
+            "M" => Ok(Chromosome::Mitochondrial),
+            "C" => Ok(Chromosome::Chloroplast),
+            _ => match s.parse::<u8>() {
+                Ok(n) => Ok(Chromosome::Regular(n)),
+                Err(_) => {
+                    return Err(Error::Chromosome(s.to_string()));
+                }
+            },
+        }
+    }
+}
+
 impl Default for MethylationSite {
     fn default() -> Self {
         MethylationSite {
-            chromosome: 1,
+            chromosome: Chromosome::Regular(1),
             start: 1,
             end: 2,
             strand: Strand::Unknown,
@@ -135,7 +160,7 @@ impl MethylationSite {
                         meth_lvl,
                     )| {
                         Ok(MethylationSite {
-                            chromosome: chromosome.parse::<u8>()?,
+                            chromosome: chromosome.try_into()?,
                             start: location.parse::<u32>()?,
                             end: location.parse::<u32>()? + 1,
                             strand: if (strand == "+") ^ invert_strand {
@@ -179,7 +204,7 @@ impl MethylationSite {
                         trinucleotide,
                     )| {
                         Ok(MethylationSite {
-                            chromosome: chromosome.parse::<u8>()?,
+                            chromosome: chromosome.try_into()?,
                             start: location.parse::<u32>()?,
                             end: location.parse::<u32>()? + 1,
                             strand: if (strand == "+") ^ invert_strand {
@@ -224,7 +249,7 @@ impl MethylationSite {
                         meth_lvl,
                     )| {
                         Ok(MethylationSite {
-                            chromosome: chromosome.parse()?,
+                            chromosome: chromosome.try_into()?,
                             start: first_nucleotide.parse::<u32>()?,
                             end: second_nucleotide.parse::<u32>()?,
                             strand: if (strand == "+") ^ invert_strand {
@@ -257,7 +282,7 @@ impl MethylationSite {
                 .collect_tuple()
                 .map(|(chromosome, start, end, state)| {
                     Ok(MethylationSite {
-                        chromosome: chromosome.parse()?,
+                        chromosome: chromosome.try_into()?,
                         strand: Strand::Unknown,
                         start: start.parse::<u32>()?,
                         end: end.parse::<u32>()?,
@@ -281,12 +306,7 @@ impl MethylationSite {
                 .collect_tuple()
                 .map(|(chromosome, start, end, _length)| {
                     Ok(MethylationSite {
-                        chromosome: chromosome
-                            .chars()
-                            .nth(3)
-                            .ok_or(Error::Simple("Not enough chars in chromosome str"))?
-                            .to_string()
-                            .parse()?,
+                        chromosome: chromosome.try_into()?,
                         strand: Strand::Unknown,
                         start: start.parse::<u32>()?,
                         end: end.parse::<u32>()?,
@@ -306,13 +326,12 @@ impl MethylationSite {
         // Requested by Patrick Wolf
         // chr | start | end | score | _ | _
         let heterogenity_score_files = |s: &str| {
-            dbg!(s);
             s.split(['\t', ' '])
                 .collect_tuple()
                 .map(|(chromosome, start, end, _score)| {
                     dbg!(chromosome, start, end);
                     Ok(MethylationSite {
-                        chromosome: chromosome.parse()?,
+                        chromosome: chromosome.try_into()?,
                         start: start.parse()?,
                         end: end.parse()?,
                         ..Default::default()
@@ -533,6 +552,37 @@ mod tests {
             .collect();
         assert_eq!(sites.get(0).unwrap().start, 809);
         assert_eq!(sites.len(), 509825);
+    }
+
+    #[test]
+    fn test_r_example_methylome_data() {
+        let file = read_to_string("data/methylome/G0.txt").unwrap();
+        let sites: Vec<MethylationSite> = file
+            .split('\n')
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .collect();
+        assert_eq!(sites.len(), 2800);
+
+        let file = read_to_string("data/methylome/G1_2.txt").unwrap();
+        let sites: Vec<MethylationSite> = file
+            .split('\n')
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .collect();
+        assert_eq!(sites.len(), 2800);
+
+        let file = read_to_string("data/methylome/G4_2.txt").unwrap();
+        let sites: Vec<MethylationSite> = file
+            .split('\n')
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .collect();
+        assert_eq!(sites.len(), 2800);
+
+        let file = read_to_string("data/methylome/G4_8.txt").unwrap();
+        let sites: Vec<MethylationSite> = file
+            .split('\n')
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .collect();
+        assert_eq!(sites.len(), 2800);
     }
 
     #[test]

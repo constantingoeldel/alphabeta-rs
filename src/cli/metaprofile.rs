@@ -1,7 +1,8 @@
 use std::fs;
 
 use alphabeta::{
-    alphabeta::steady_state, arguments::Windows as Args, extract::extract, genes::Region, progress,
+    alphabeta::steady_state, arguments::Windows as Args, extract::extract, genes::Region, plot,
+    progress, structs::ModelWithSD,
 };
 use clap::Parser;
 
@@ -84,4 +85,34 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
     //     .await
     //     .expect("Could not connect to database: Did you provide a connection string?");
     // import_results(&db, args.name, results).await.expect("Could not save results to a database. Your data is stored in files in each directory");
+    let models_with_sd: Vec<ModelWithSD> = results
+        .iter()
+        .map(|(model, sd, _, _)| ModelWithSD {
+            alpha: model.alpha,
+            beta: model.beta,
+            sd_alpha: sd.alpha,
+            sd_beta: sd.beta,
+        })
+        .collect();
+
+    plot::metaplot(&models_with_sd, &args).expect("Could not plot results");
 }
+
+// #[cfg(test)]
+// mod test {
+//     use std::path::PathBuf;
+
+//     use alphabeta::arguments::Windows;
+
+//     #[test]
+//     fn end_to_end() {
+//         let args = Windows {
+//             name: String::from("test"),
+//             genome: PathBuf::from("data/annotation.bed"),
+//             methylome: PathBuf::from("data/methylome"),
+//             output_dir: String::from("data/output_metaplot"),
+//             alphabeta: false,
+//         };
+//         }
+//     }
+// }
