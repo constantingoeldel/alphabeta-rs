@@ -2,7 +2,7 @@ use std::fs;
 
 use crate::*;
 
-pub fn set_up_output_dir(args: arguments::Windows, max_gene_length: u32) -> Result<()> {
+pub fn setup_output_dir(args: arguments::Windows, max_gene_length: u32) -> Result<()> {
     fs::read_dir(&args.output_dir).or(Err(Error::File(args.output_dir.clone())))?; // Throw error if base output dir does not exist
 
     // // Replace existing content of output dir

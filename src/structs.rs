@@ -275,8 +275,7 @@ mod test {
         let param = Model::default().to_vec().into();
         let result = C::cost(&c, &param);
         let result = result.unwrap();
-        // TODO: enable
-        // assert_eq!(result, 0.0006700888539608879);
+        assert_eq!(result, 0.0006700888539608879);
     }
 
     #[test]

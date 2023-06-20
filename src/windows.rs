@@ -10,7 +10,7 @@ use itertools::Itertools;
 use crate::{
     arguments::Windows as Args,
     files::lines_from_file,
-    genes::{Gene, GenesByStrand, Region},
+    genes::{Gene, Genome, Region},
     methylation_site::MethylationSite,
     *,
 };
@@ -288,7 +288,7 @@ impl Windows {
 
     pub fn extract(
         methylome_file: File,
-        genome: Vec<GenesByStrand>,
+        genome: Genome,
         max_gene_length: u32,
         args: Args,
         file_name: String,

@@ -2,11 +2,13 @@ use std::{fs, sync::Mutex};
 
 use anyhow::bail;
 use indicatif::MultiProgress;
+use itertools::Itertools;
 
 use crate::{
     files::{file_name, lines_from_file, load_methylome, open_file},
-    genes::{Gene, GenesByStrand},
-    setup::set_up_output_dir,
+    genes::{Gene, Genome},
+    methylation_site::Chromosome,
+    setup::setup_output_dir,
     windows::Windows,
     *,
 };
@@ -42,55 +44,39 @@ pub fn extract(args: arguments::Windows) -> Result<(u32, Vec<i32>)> {
         bail!(Error::Simple("Could not parse a single annotation from the annotation file. Please check your input or add a parser implemenation for your data format."))
     }
 
-    // number of different chromosomes assuming they are named from 1 to highest
-    let chromosome_count = genes
-        .iter()
-        .map(|g| g.chromosome)
-        .fold(vec![], |acc, cur| {
-            if !acc.contains(&cur) {
-                acc.push(cur)
-            }
-            acc
-        })
-        .len();
-
-    genes.sort_by_key(|g| g.start); // Sort genes by start bp (propably already the case), needed for binary search
-
-    // Structure genes first by chromosome, then by + and - strand => [Chromosome_1(+ Strand, - Strand), Chromosome_2(+,-), ..]
-    let mut structured_genes: Vec<GenesByStrand> =
-        vec![GenesByStrand::new(); chromosome_count.into()];
-    // Put genes into their correct bucket
-    genes.iter().for_each(|g| {
-        let chromosome = &mut structured_genes[(g.chromosome - 1) as usize];
-        chromosome.insert(g.to_owned());
-    });
-
+    // Extract all the different chromosomes, which are used to construct the genome HashMap
+    let chromosomes: Vec<&Chromosome> = genes.iter().map(|g| &g.chromosome).unique().collect();
     // Determine the maximum gene length by iterating over all genes
     let mut max_gene_length: u32 = 100; // if not using absolute window sizes, the maximum gene length will be 100%
     if args.absolute {
-        for gene in &genes {
-            let length = gene.end - gene.start;
-            if length > max_gene_length {
-                max_gene_length = length
-            }
-        }
+        max_gene_length = genes
+            .iter()
+            .map(|g| g.end - g.start)
+            .max()
+            .expect("There are no genes in the annotation file");
         println!("The maximum gene length is {max_gene_length} bp");
     }
+    setup_output_dir(args.clone(), max_gene_length)?;
 
-    set_up_output_dir(args.clone(), max_gene_length)?;
+    // Structure genes first by chromosome
+    let mut genome = Genome::new(chromosomes);
+    for gene in genes {
+        genome.insert_gene(gene.chromosome.clone(), gene);
+    }
+    genome.sort();
 
     let distributions = Mutex::new(Vec::new());
     let steady_state_methylations = Mutex::new(Vec::new());
 
     let bars = MultiProgress::new();
 
-    methylome_files.par_iter().try_for_each_with(
-        structured_genes,
-        |genome, path| -> Result<()> {
+    methylome_files
+        .par_iter()
+        .try_for_each_with(genome, |genome, path| -> Result<()> {
             let file = open_file(path)?;
             let mut windows = Windows::extract(
                 file,
-                genome.to_vec(),
+                genome.to_owned(),
                 max_gene_length,
                 args.clone(),
                 file_name(path),
@@ -109,8 +95,7 @@ pub fn extract(args: arguments::Windows) -> Result<(u32, Vec<i32>)> {
             steady_state_methylations.lock().unwrap().push(methylation);
 
             Ok(())
-        },
-    )?;
+        })?;
 
     // Removing the mutexes as the paralell part is over
     let steady_state_meth = steady_state_methylations.into_inner().unwrap();

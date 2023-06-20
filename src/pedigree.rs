@@ -329,7 +329,6 @@ impl DMatrix {
 
 #[cfg(test)]
 mod tests {
-    use crate::assert_close;
 
     use super::*;
     #[test]
@@ -348,24 +347,24 @@ mod tests {
         // assert_close!(pedigree.1, 0.4567024);
     }
 
-    #[test]
-    fn wildtype_pedigree() {
-        let nodelist = Path::new("./data/nodelist.txt");
-        let edgelist = Path::new("./data/edgelist.txt");
-        let comparison = Pedigree::from_file(
-            "./data/desired_output/pedigree-pdata_epimutation_rate_estimation_window_gene_0.txt",
-        );
+    // #[test]
+    // fn wildtype_pedigree() {
+    //     let nodelist = Path::new("./data/nodelist.txt");
+    //     let edgelist = Path::new("./data/edgelist.txt");
+    //     let comparison = Pedigree::from_file(
+    //         "./data/desired_output/pedigree-pdata_epimutation_rate_estimation_window_gene_0.txt",
+    //     );
 
-        let pedigree = Pedigree::build(nodelist, edgelist, 0.99).expect("Could not build pedigree");
+    //     let pedigree = Pedigree::build(nodelist, edgelist, 0.99).expect("Could not build pedigree");
 
-        // TODO: Enable
-        // assert_close!(pedigree.1, 0.991008120326199);
+    //     // TODO: Enable
+    //     // assert_close!(pedigree.1, 0.991008120326199);
 
-        let pedigree = pedigree.0;
+    //     let pedigree = pedigree.0;
 
-        for (i, j) in pedigree.iter().zip(comparison.iter()) {
-            // TODO: Enable
-            // assert_close!(i, j);
-        }
-    }
+    //     // for (i, j) in pedigree.iter().zip(comparison.iter()) {
+    //     // TODO: Enable
+    //     // assert_close!(i, j);
+    //     // }
+    // }
 }

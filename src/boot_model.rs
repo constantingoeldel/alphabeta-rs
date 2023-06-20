@@ -1,11 +1,12 @@
 use indicatif::ProgressBar;
 use rayon::prelude::*;
-use std::sync::Mutex;
+use std::{path::PathBuf, sync::Mutex};
 
 use argmin::{core::Executor, solver::neldermead::NelderMead};
 use ndarray::{array, Array1, Array2, Axis};
 
 use crate::{
+    arguments::AlphaBeta,
     pedigree::Pedigree,
     structs::{Model, Problem, Progress, StandardDeviations},
     *,
@@ -19,6 +20,7 @@ pub fn run(
     eqp_weight: f64,
     n_boot: u64,
     pb: Option<ProgressBar>,
+    output_dir: &PathBuf,
 ) -> Result<StandardDeviations, Box<dyn std::error::Error>> {
     let pb = pb.unwrap_or_else(|| Progress::new("BootModel", n_boot).0);
 
@@ -42,8 +44,9 @@ pub fn run(
             p_uu: p0uu,
         };
         // Run Nelder-Mead optimization
+        // Use the previous result as the initial guess, supplement with random values close-by
         let nm = NelderMead::new(vec![
-            params.vary().to_vec(),
+            params.to_vec(),
             params.vary().to_vec(),
             params.vary().to_vec(),
             params.vary().to_vec(),
@@ -58,7 +61,11 @@ pub fn run(
             })
             .run()
             .expect("Failed to run Nelder-Mead optimization");
-
+        dbg!(
+            res.state.iter,
+            res.state.last_best_iter,
+            res.state.max_iters
+        );
         let m = Model::from_vec(&res.state.best_param.unwrap());
 
         let pr_mm = m.est_mm();
@@ -79,10 +86,15 @@ pub fn run(
     let results = results.into_inner().unwrap();
 
     dbg!(results.shape());
-
+    let a = results.column(0).to_vec();
+    let b = results.column(1).to_vec();
+    dbg!(a);
+    dbg!(b);
+    panic!();
     plot::bootstrap(
-        results.column(0).to_slice().unwrap(),
-        results.column(1).to_slice().unwrap(),
+        results.column(0).to_vec(),
+        results.column(1).to_vec(),
+        output_dir,
     )?;
     // Standard deviations
     let sd_alpha = results.column(0).std(1.0);

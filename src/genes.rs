@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display, ops::Deref};
 
 use itertools::Itertools;
 
@@ -15,6 +15,45 @@ pub enum Strand {
     Sense,
     Antisense,
     Unknown,
+}
+
+// TODO Can we somehow get rid of this? Cloning Genome is expensive
+// Clone is needed for try_for_each_with of the rayon lib for processing the genes
+// Although at the cloning moment, it is still empty, so not expensive
+#[derive(Clone)]
+pub struct Genome(HashMap<Chromosome, GenesByStrand>);
+
+impl Deref for Genome {
+    type Target = HashMap<Chromosome, GenesByStrand>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+// impl DerefMut for Genome {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         &mut self.0
+//     }
+// }
+
+impl Genome {
+    pub fn new(chromosomes: Vec<&Chromosome>) -> Self {
+        let mut genome = HashMap::new();
+        for chromosome in chromosomes {
+            genome.insert(chromosome.to_owned(), GenesByStrand::new());
+        }
+        Genome(genome)
+    }
+
+    pub fn insert_gene(&mut self, chromsome: Chromosome, gene: Gene) {
+        self.0.get_mut(&chromsome).unwrap().insert(gene);
+    }
+
+    pub fn sort(&mut self) {
+        for genes_by_strand in self.0.values_mut() {
+            genes_by_strand.sort();
+        }
+    }
 }
 
 impl<'a> TryFrom<&'a str> for Strand {
@@ -151,7 +190,7 @@ impl Gene {
                 .map(|(chromosome, start, end, _width, strand, name)| {
                     let strand: Strand = strand.try_into()?;
                     Ok(Gene {
-                        chromosome: chromosome.parse::<u8>()?,
+                        chromosome: chromosome.try_into()?,
                         start: start.parse::<u32>()?,
                         end: end.parse::<u32>()?,
                         name: String::from(name),
@@ -193,6 +232,16 @@ impl Display for Strand {
             Strand::Sense => write!(f, "+"),
             Strand::Antisense => write!(f, "-"),
             Strand::Unknown => write!(f, "*"),
+        }
+    }
+}
+
+impl Display for Chromosome {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Chromosome::Mitochondrial => write!(f, "M"),
+            Chromosome::Chloroplast => write!(f, "C"),
+            Chromosome::Numbered(n) => write!(f, "{n}"),
         }
     }
 }

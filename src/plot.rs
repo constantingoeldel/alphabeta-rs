@@ -1,12 +1,11 @@
-use std::path::PathBuf;
-
 use crate::{
-    arguments::Windows,
-    structs::{Model, ModelWithSD},
+    arguments::{AlphaBeta, Windows},
+    structs::ModelWithSD,
     *,
 };
 use itertools::Itertools;
 use plotters::prelude::*;
+use std::path::Path;
 
 pub fn metaplot(windows: &[ModelWithSD], args: &Windows) -> Result<()> {
     let output_file = args.output_dir.join("metaplot.png");
@@ -87,8 +86,8 @@ pub fn metaplot(windows: &[ModelWithSD], args: &Windows) -> Result<()> {
     Ok(())
 }
 
-pub fn bootstrap(alphas: &[f64], betas: &[f64]) -> Result<()> {
-    let output_file = PathBuf::from("bootstrap.png");
+pub fn bootstrap(alphas: Vec<f64>, betas: Vec<f64>, output_dir: &Path) -> Result<()> {
+    let output_file = output_dir.join("bootstrap.png");
     dbg!(&output_file);
 
     let max = alphas
@@ -117,8 +116,8 @@ pub fn bootstrap(alphas: &[f64], betas: &[f64]) -> Result<()> {
 
     chart.configure_mesh().draw()?;
 
-    let alpha_quartiles = Quartiles::new(alphas);
-    let beta_quartiles = Quartiles::new(betas);
+    let alpha_quartiles = Quartiles::new(&alphas);
+    let beta_quartiles = Quartiles::new(&betas);
 
     chart.draw_series(vec![
         Boxplot::new_vertical(SegmentValue::CenterOf(&"Alpha"), &alpha_quartiles)
@@ -131,11 +130,21 @@ pub fn bootstrap(alphas: &[f64], betas: &[f64]) -> Result<()> {
             .whisker_width(1.0),
     ])?;
 
+    chart
+        .configure_series_labels()
+        .background_style(WHITE.mix(0.8))
+        .border_style(BLACK)
+        .draw()?;
+
+    root.present()?;
+
     Ok(())
 }
 
 #[cfg(test)]
 mod test {
+    use std::path::PathBuf;
+
     use super::*;
     use crate::arguments::Windows;
 
@@ -152,7 +161,7 @@ mod test {
         let models: Vec<ModelWithSD> = (0..300).map(|_| ModelWithSD::random()).collect();
         let alphas = models.iter().map(|m| m.alpha).collect_vec();
         let betas = models.iter().map(|m| m.beta).collect_vec();
-
-        bootstrap(&alphas, &betas).unwrap();
+        let out = PathBuf::from("./");
+        bootstrap(alphas, betas, &out).unwrap();
     }
 }
