@@ -35,7 +35,6 @@ impl Windows {
         } else {
             100 / args.window_step
         };
-        dbg!(gene_window_count, up_down_window_count);
         Windows {
             upstream: vec![Vec::new(); up_down_window_count as usize],
             gene: vec![Vec::new(); gene_window_count as usize],

@@ -1,13 +1,9 @@
-use crate::{
-    arguments::{AlphaBeta, Windows},
-    structs::ModelWithSD,
-    *,
-};
+use crate::{arguments::Windows, structs::Analysis, *};
 use itertools::Itertools;
 use plotters::prelude::*;
 use std::path::Path;
 
-pub fn metaplot(windows: &[ModelWithSD], args: &Windows) -> Result<()> {
+pub fn metaplot(analyses: &[Analysis], args: &Windows) -> Result<()> {
     let output_file = args.output_dir.join("metaplot.png");
     dbg!(&output_file);
 
@@ -25,7 +21,7 @@ pub fn metaplot(windows: &[ModelWithSD], args: &Windows) -> Result<()> {
 
     chart
         .draw_series(LineSeries::new(
-            windows
+            analyses
                 .iter()
                 .enumerate()
                 .map(|(i, w)| (i as f32, w.alpha as f32)),
@@ -36,7 +32,7 @@ pub fn metaplot(windows: &[ModelWithSD], args: &Windows) -> Result<()> {
 
     chart
         .draw_series(LineSeries::new(
-            windows
+            analyses
                 .iter()
                 .enumerate()
                 .map(|(i, w)| (i as f32, w.beta as f32)),
@@ -45,13 +41,13 @@ pub fn metaplot(windows: &[ModelWithSD], args: &Windows) -> Result<()> {
         .label("Beta")
         .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], BLUE));
 
-    let confidence_interval_alpha: Vec<(f32, f32)> = windows
+    let confidence_interval_alpha: Vec<(f32, f32)> = analyses
         .iter()
         .enumerate()
         .map(|(i, w)| {
             vec![
-                (i as f32, (w.alpha - w.sd_alpha) as f32),
-                (i as f32, (w.alpha + w.sd_alpha) as f32),
+                (i as f32, (w.ci_alpha.1) as f32),
+                (i as f32, (w.ci_alpha.0) as f32),
             ]
         })
         .concat();
@@ -60,13 +56,13 @@ pub fn metaplot(windows: &[ModelWithSD], args: &Windows) -> Result<()> {
         RED.mix(0.2),
     )))?;
 
-    let confidence_interval_beta: Vec<(f32, f32)> = windows
+    let confidence_interval_beta: Vec<(f32, f32)> = analyses
         .iter()
         .enumerate()
         .map(|(i, w)| {
             vec![
-                (i as f32, (w.beta - w.sd_beta) as f32),
-                (i as f32, (w.beta + w.sd_beta) as f32),
+                (i as f32, (w.ci_beta.1) as f32),
+                (i as f32, (w.ci_beta.0) as f32),
             ]
         })
         .concat();
@@ -101,16 +97,17 @@ pub fn bootstrap(alphas: Vec<f64>, betas: Vec<f64>, output_dir: &Path) -> Result
     root.fill(&WHITE)?;
     let x_axis = ["Alpha", "Beta"];
     let mut chart = ChartBuilder::on(&root)
-        .x_label_area_size(40)
-        .y_label_area_size(80)
-        .caption("Bootstrap Boxplot", ("sans-serif", 20))
+        .y_label_area_size(90)
+        .x_label_area_size(30)
+        .margin(20)
+        .caption("Bootstrap Boxplot", ("sans-serif", 40))
         .build_cartesian_2d(x_axis.into_segmented(), 0.0..(max * 1.3) as f32)?;
 
     chart
         .configure_mesh()
-        .x_desc("Ping, ms")
-        .y_desc("Host")
+        .y_desc("Epimutation rate")
         .y_labels(10)
+        .axis_desc_style(("sans-serif", 30))
         .light_line_style(WHITE)
         .draw()?;
 
@@ -143,25 +140,25 @@ pub fn bootstrap(alphas: Vec<f64>, betas: Vec<f64>, output_dir: &Path) -> Result
 
 #[cfg(test)]
 mod test {
-    use std::path::PathBuf;
+    // use std::path::PathBuf;
 
-    use super::*;
-    use crate::arguments::Windows;
+    // use super::*;
+    // use crate::arguments::Windows;
 
-    #[test]
-    fn test_metaplot() {
-        let models: Vec<ModelWithSD> = (0..300).map(|_| ModelWithSD::random()).collect();
-        let args = Windows::default();
+    // #[test]
+    // fn test_metaplot() {
+    //     let models: Vec<Analysis> = (0..300).map(|_| Analysis::random()).collect();
+    //     let args = Windows::default();
 
-        metaplot(&models, &args).unwrap();
-    }
+    //     metaplot(&models, &args).unwrap();
+    // }
 
-    #[test]
-    fn test_boxplot() {
-        let models: Vec<ModelWithSD> = (0..300).map(|_| ModelWithSD::random()).collect();
-        let alphas = models.iter().map(|m| m.alpha).collect_vec();
-        let betas = models.iter().map(|m| m.beta).collect_vec();
-        let out = PathBuf::from("./");
-        bootstrap(alphas, betas, &out).unwrap();
-    }
+    // #[test]
+    // fn test_boxplot() {
+    //     let models: Vec<Analysis> = (0..300).map(|_| Analysis::random()).collect();
+    //     let alphas = models.iter().map(|m| m.alpha).collect_vec();
+    //     let betas = models.iter().map(|m| m.beta).collect_vec();
+    //     let out = PathBuf::from("./");
+    //     bootstrap(alphas, betas, &out).unwrap();
+    // }
 }

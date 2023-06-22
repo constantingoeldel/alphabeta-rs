@@ -1,7 +1,7 @@
 use std::{
     fs::{self, File},
     io::{BufRead, BufReader, Write},
-    ops::Deref,
+    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
 };
 
@@ -201,6 +201,12 @@ impl Deref for Pedigree {
     }
 }
 
+impl DerefMut for Pedigree {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
 #[derive(Debug)]
 struct DMatrix(Array2<f64>);
 
@@ -214,7 +220,11 @@ impl DMatrix {
                 assert!(first.sites.as_ref().is_some());
                 assert!(second.sites.as_ref().is_some());
                 if first.sites.as_ref().unwrap().len() != second.sites.as_ref().unwrap().len() {
-                    dbg!("Lengths do not match, all bets are off");
+                    println!(
+                        "Lengths do not match, all bets are off: {} vs {}",
+                        first.sites.as_ref().unwrap().len(),
+                        second.sites.as_ref().unwrap().len()
+                    );
                     divergences[[i, j]] = 0.0;
                     continue;
                 }

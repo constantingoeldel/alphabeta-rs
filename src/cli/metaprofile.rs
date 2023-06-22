@@ -2,7 +2,7 @@ use std::fs;
 
 use alphabeta::{
     alphabeta::steady_state, arguments::Windows as Args, extract::extract, genes::Region, plot,
-    progress, structs::ModelWithSD,
+    progress, structs::Analysis,
 };
 use clap::Parser;
 
@@ -59,7 +59,7 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
     pb.finish();
     let mut print = String::from("run;window;cg_count;region;alpha;beta;alpha_error;beta_error;1/2*(alpha+beta);pred_steady_state;obs_steady_state\n");
 
-    for (i, ((model, sd, region, obs_meth_lvl), d)) in
+    for (i, ((model, analysis, region, obs_meth_lvl), d)) in
         results.iter().zip(distribution.iter()).enumerate()
     {
         print += &format!(
@@ -70,8 +70,8 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
             region,
             model.alpha,
             model.beta,
-            sd.alpha,
-            sd.beta,
+            analysis.alpha,
+            analysis.beta,
             0.5 * (model.alpha + model.beta),
             steady_state(model.alpha, model.beta),
             obs_meth_lvl
@@ -85,17 +85,11 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
     //     .await
     //     .expect("Could not connect to database: Did you provide a connection string?");
     // import_results(&db, args.name, results).await.expect("Could not save results to a database. Your data is stored in files in each directory");
-    let models_with_sd: Vec<ModelWithSD> = results
+    let analyses = results
         .iter()
-        .map(|(model, sd, _, _)| ModelWithSD {
-            alpha: model.alpha,
-            beta: model.beta,
-            sd_alpha: sd.alpha,
-            sd_beta: sd.beta,
-        })
-        .collect();
-
-    plot::metaplot(&models_with_sd, &args).expect("Could not plot results");
+        .map(|r| r.1.clone())
+        .collect::<Vec<Analysis>>();
+    plot::metaplot(&analyses, &args).expect("Could not plot results");
 }
 
 // #[cfg(test)]

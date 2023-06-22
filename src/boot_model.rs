@@ -1,27 +1,32 @@
 use indicatif::ProgressBar;
+use rand::{distributions::Slice, thread_rng, Rng};
 use rayon::prelude::*;
-use std::{path::PathBuf, sync::Mutex};
+use std::{ops::Div, path::Path, sync::Mutex};
 
 use argmin::{core::Executor, solver::neldermead::NelderMead};
-use ndarray::{array, Array1, Array2, Axis};
+use ndarray::{array, s, Array1, Array2, ArrayView1, Axis};
+use ndarray_stats::interpolate::Linear;
+use ndarray_stats::Quantile1dExt;
+use noisy_float::types::n64;
 
 use crate::{
-    arguments::AlphaBeta,
     pedigree::Pedigree,
-    structs::{Model, Problem, Progress, StandardDeviations},
+    structs::{Analysis, Model, PredictedDivergence, Problem, Progress, Residuals, CI},
     *,
 };
 
 pub fn run(
     pedigree: &Pedigree,
     params: &Model,
+    pred_div: PredictedDivergence,
+    residuals: Residuals,
     p0uu: f64,
     eqp: f64,
     eqp_weight: f64,
     n_boot: u64,
     pb: Option<ProgressBar>,
-    output_dir: &PathBuf,
-) -> Result<StandardDeviations, Box<dyn std::error::Error>> {
+    output_dir: &Path,
+) -> Result<Analysis, Box<dyn std::error::Error>> {
     let pb = pb.unwrap_or_else(|| Progress::new("BootModel", n_boot).0);
 
     let p0mm = 1.0 - p0uu;
@@ -31,12 +36,28 @@ pub fn run(
 
     // Alpha, Beta, Weight, Intercept, pr_mm, pr_um, pr_uu
     let results = Mutex::new(Array2::<f64>::zeros((0, 7)));
-    // let counter = AtomicU32::new(0);
 
     // Optimization loop
     (0..n_boot).into_par_iter().for_each(|_i| {
+        // pedigree[,"div.obs"]<-pedigree[,"div.pred"]+sample(pedigree[,"residual"], nrow(pedigree), replace=TRUE)
+        let rng = thread_rng();
+        let residual_dist = Slice::new(&residuals).unwrap();
+        let residual_sample: Vec<&f64> = rng
+            .sample_iter(&residual_dist)
+            .take(pedigree.len_of(Axis(0)))
+            .collect();
+        assert!(pred_div.len() == residual_sample.len());
+        let div_ops: Vec<f64> = pred_div
+            .iter()
+            .zip(residual_sample.iter())
+            .map(|(a, b)| a + *b)
+            .collect();
+
+        let mut pedigree = pedigree.clone();
+        pedigree.slice_mut(s![.., 3]).assign(&Array1::from(div_ops));
+
         let problem = Problem {
-            pedigree: pedigree.clone(),
+            pedigree,
             eqp_weight,
             eqp,
             p_mm: p0mm,
@@ -61,11 +82,7 @@ pub fn run(
             })
             .run()
             .expect("Failed to run Nelder-Mead optimization");
-        dbg!(
-            res.state.iter,
-            res.state.last_best_iter,
-            res.state.max_iters
-        );
+
         let m = Model::from_vec(&res.state.best_param.unwrap());
 
         let pr_mm = m.est_mm();
@@ -85,45 +102,58 @@ pub fn run(
 
     let results = results.into_inner().unwrap();
 
-    dbg!(results.shape());
-    let a = results.column(0).to_vec();
-    let b = results.column(1).to_vec();
-    dbg!(a);
-    dbg!(b);
-    panic!();
     plot::bootstrap(
         results.column(0).to_vec(),
         results.column(1).to_vec(),
         output_dir,
     )?;
-    // Standard deviations
-    let sd_alpha = results.column(0).std(1.0);
-    let sd_beta = results.column(1).std(1.0);
-    // Alpha - Beta
-    let sd_alpha_beta = results
-        .column(1)
-        .iter()
-        .zip(results.column(0).iter())
-        .map(|(b, a)| b / a)
-        .collect::<Array1<f64>>();
 
-    let sd_weight = results.column(2).std(1.0);
-    let sd_intercept = results.column(3).std(1.0);
+    let alphabeta = results.column(1).div(&results.column(0));
 
-    let sd_pr_mm_inf = results.column(4).std(1.0);
-    let sd_pr_um_inf = results.column(5).std(1.0);
-    let sd_pr_uu_inf = results.column(6).std(1.0);
+    let ci = |val: ArrayView1<f64>| {
+        let q = val
+            .map(|x| n64(*x))
+            .to_owned()
+            .quantiles_mut(&array![n64(0.025), n64(0.975)], &Linear)
+            .unwrap();
+
+        CI(q[0].raw(), q[1].raw())
+    };
+
+    let analysis = Analysis {
+        alpha: results.column(0).mean().unwrap(),
+        beta: results.column(1).mean().unwrap(),
+        alphabeta: alphabeta.mean().unwrap(),
+        weight: results.column(2).mean().unwrap(),
+        intercept: results.column(3).mean().unwrap(),
+        pr_mm: results.column(4).mean().unwrap(),
+        pr_um: results.column(5).mean().unwrap(),
+        pr_uu: results.column(6).mean().unwrap(),
+
+        sd_alpha: results.column(0).std(1.0),
+        sd_beta: results.column(1).std(1.0),
+
+        sd_alphabeta: alphabeta.std(1.0),
+
+        sd_weight: results.column(2).std(1.0),
+        sd_intercept: results.column(3).std(1.0),
+
+        sd_pr_mm: results.column(4).std(1.0),
+        sd_pr_um: results.column(5).std(1.0),
+        sd_pr_uu: results.column(6).std(1.0),
+
+        ci_alpha: ci(results.column(0)),
+        ci_beta: ci(results.column(1)),
+        ci_alphabeta: ci(alphabeta.view()),
+        ci_weight: ci(results.column(2)),
+        ci_intercept: ci(results.column(3)),
+
+        ci_pr_mm: ci(results.column(4)),
+        ci_pr_um: ci(results.column(5)),
+        ci_pr_uu: ci(results.column(6)),
+    };
 
     // Quantiles not implemented yet
 
-    Ok(StandardDeviations {
-        alpha: sd_alpha,
-        beta: sd_beta,
-        alpha_beta: sd_alpha_beta.std(1.0),
-        weight: sd_weight,
-        intercept: sd_intercept,
-        p_mm: sd_pr_mm_inf,
-        p_um: sd_pr_um_inf,
-        p_uu: sd_pr_uu_inf,
-    })
+    Ok(analysis)
 }

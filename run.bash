@@ -1,5 +1,5 @@
 # WT
-cargo run --release --bin windows -- \
+cargo run --release --bin metaprofile -- \
 -m ../methylome/within_gbM_genes/ \
 -g ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
 -o /mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/wt \

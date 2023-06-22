@@ -351,7 +351,7 @@ impl MethylationSite {
         match results {
             Ok(methylation_site) => Some(methylation_site),
             Err(e) => {
-                print_dev!("Non-fatal error when parsing methylation site: {e}\nLine: {s}");
+                println!("Non-fatal error when parsing methylation site: {e}\nLine: {s}");
                 None
             }
         }

@@ -18,10 +18,11 @@ dependencies = [
  "blas-src",
  "clap 4.2.0",
  "criterion",
- "float-ord 0.3.2",
  "indicatif",
  "itertools",
  "ndarray",
+ "ndarray-stats",
+ "noisy_float",
  "openblas-src",
  "petgraph",
  "plotters",
@@ -709,12 +710,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7bad48618fdb549078c333a7a8528acb57af271d0433bdecd523eb620628364e"
 
 [[package]]
-name = "float-ord"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ce81f49ae8a0482e4c55ea62ebbd7e5a686af544c00b9d090bba3ff9be97b3d"
-
-[[package]]
 name = "font-kit"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -727,7 +722,7 @@ dependencies = [
  "core-text",
  "dirs-next",
  "dwrote",
- "float-ord 0.2.0",
+ "float-ord",
  "freetype",
  "lazy_static",
  "libc",
@@ -1154,6 +1149,30 @@ dependencies = [
  "num-traits",
  "rand",
  "thiserror",
+]
+
+[[package]]
+name = "ndarray-stats"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af5a8477ac96877b5bd1fd67e0c28736c12943aba24eda92b127e036b0c8f400"
+dependencies = [
+ "indexmap",
+ "itertools",
+ "ndarray",
+ "noisy_float",
+ "num-integer",
+ "num-traits",
+ "rand",
+]
+
+[[package]]
+name = "noisy_float"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "978fe6e6ebc0bf53de533cd456ca2d9de13de13856eda1518a285d7705a213af"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]

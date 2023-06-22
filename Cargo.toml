@@ -24,7 +24,6 @@ path = "src/cli/metaprofile.rs"
 [dependencies]
 argmin = "0.8.0"
 argmin-math = { version = "0.3", features = ["ndarray_latest-serde", "nalgebra_latest-serde"] }
-float-ord = "0.3.2"
 ndarray = { version = "0.15.0",  features = ["blas"]}
 blas-src = { version = "0.8.0",  features = ["openblas"] }
 openblas-src = { version = "0.10",  features = ["static"] }
@@ -37,6 +36,8 @@ indicatif = "0.17.3"
 thiserror = "1.0.40"
 itertools = "0.10.5"
 plotters = "0.3.4"
+ndarray-stats = "0.5.1"
+noisy_float = "0.2.0"
 
 
 [dev-dependencies]

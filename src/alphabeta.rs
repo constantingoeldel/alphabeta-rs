@@ -5,18 +5,26 @@ use crate::{
     arguments::AlphaBeta as Args,
     pedigree::Pedigree,
     progress::specific,
-    structs::{Model, StandardDeviations},
+    structs::{Analysis, Model},
     *,
 };
 
-pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, StandardDeviations, Pedigree, f64)> {
+/// Run AlphaBeta
+///
+/// Returns:
+///
+/// * `Model` - The best model found by the algorithm
+/// * `Analysis` - The analysis of the model, done by bootstrapping
+/// * `Pedigree` - The pedigree used for the analysis
+/// * The observed steady state methylation level
+pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, Analysis, Pedigree, f64)> {
     println!("Building pedigree...");
     let (pedigree, p0uu) = Pedigree::build(&args.nodes, &args.edges, args.posterior_max_filter)
         .map_err(|e| anyhow!("Error while building pedigree: {}", e))?;
 
     let (pb_neutral, pb_boot) = specific(bars, args.iterations);
 
-    let model = ab_neutral::run(
+    let (model, pred_div, residuals) = ab_neutral::run(
         &pedigree,
         p0uu,
         p0uu,
@@ -28,6 +36,8 @@ pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, StandardDeviation
     let result = boot_model::run(
         &pedigree,
         &model,
+        pred_div,
+        residuals,
         p0uu,
         p0uu,
         1.0,
@@ -70,10 +80,22 @@ mod tests {
         )
         .expect("Error while building pedigree: ");
         let output_dir = PathBuf::from("./");
-        let model = ab_neutral::run(&pedigree, p0uu, p0uu, 1.0, 1000, None).expect("Model failed");
-        let result = boot_model::run(&pedigree, &model, p0uu, p0uu, 1.0, 200, None, &output_dir)
-            .expect("Bootstrap failed");
-        println!("{result}");
+        let (model, pred_div, residuals) =
+            ab_neutral::run(&pedigree, p0uu, p0uu, 1.0, 1000, None).expect("Model failed");
+        let result = boot_model::run(
+            &pedigree,
+            &model,
+            pred_div,
+            residuals,
+            p0uu,
+            p0uu,
+            1.0,
+            200,
+            None,
+            &output_dir,
+        )
+        .expect("Bootstrap failed");
+        dbg!(result);
         assert_within_10_percent!(model.alpha, 5.7985750419976e-05);
         assert_within_10_percent!(model.beta, 0.00655710970515347);
         assert_within_10_percent!(p0uu, 0.991008120326199);

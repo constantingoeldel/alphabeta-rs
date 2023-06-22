@@ -1,4 +1,10 @@
-use std::{fmt::Display, fs::File, io::Write, ops::Deref, path::Path};
+use std::{
+    fmt::{Display},
+    fs::File,
+    io::Write,
+    ops::Deref,
+    path::Path,
+};
 
 use argmin::core::CostFunction;
 
@@ -25,37 +31,139 @@ pub struct Model {
     pub intercept: f64,
 }
 
-#[derive(Debug)]
-pub struct ModelWithSD {
+#[derive(Debug, Clone)]
+pub struct Analysis {
     pub alpha: f64,
     pub beta: f64,
+    pub alphabeta: f64,
+    pub weight: f64,
+    pub intercept: f64,
+
+    pub pr_mm: f64,
+    pub pr_um: f64,
+    pub pr_uu: f64,
+
     pub sd_alpha: f64,
     pub sd_beta: f64,
+    pub sd_alphabeta: f64,
+    pub sd_weight: f64,
+    pub sd_intercept: f64,
+
+    pub sd_pr_mm: f64,
+    pub sd_pr_um: f64,
+    pub sd_pr_uu: f64,
+
+    pub ci_alpha: CI,
+    pub ci_beta: CI,
+    /// Beta/Alpha
+    pub ci_alphabeta: CI,
+    pub ci_weight: CI,
+    pub ci_intercept: CI,
+
+    pub ci_pr_mm: CI,
+    pub ci_pr_um: CI,
+    pub ci_pr_uu: CI,
 }
 
-impl ModelWithSD {
-    pub fn random() -> Self {
-        let mut rng = thread_rng();
-        Self {
-            alpha: 10.0_f64.powf(rng.sample(Uniform::new(-3.0, -2.0))),
-            beta: 10.0_f64.powf(rng.sample(Uniform::new(-3.0, -2.0))),
-            sd_alpha: 10.0_f64.powf(rng.sample(Uniform::new(-5.0, -4.0))),
-            sd_beta: 10.0_f64.powf(rng.sample(Uniform::new(-5.0, -4.0))),
-        }
+impl Analysis {
+    pub fn to_file(&self, path: &Path) -> std::io::Result<()> {
+        println!("Writing model to file: {}", path.display());
+        let mut file = File::create(path).unwrap();
+        let  content = format!(
+            "Alpha\t{}\nBeta\t{}\nAlphaBeta\t{}\nWeight\t{}\nIntercept\t{}\nPrMM\t{}\nPrUM\t{}\nPrUU\t{}\nSDAlpha\t{}\nSDBeta\t{}\nSDAlphaBeta\t{}\nSDWeight\t{}\nSDIntercept\t{}\nSDPrMM\t{}\nSDPrUM\t{}\nSDPrUU\t{}\nCIAlpha\t{}-{}\nCIBeta\t{}-{}\nCIAlphaBeta\t{}-{}\nCIWeight\t{}-{}\nCIIntercept\t{}-{}\nCIPrMM\t{}-{}\nCIPrUM\t{}-{}\nCIPrUU\t{}-{}\n",
+            self.alpha,
+            self.beta,
+            self.alphabeta,
+            self.weight,
+            self.intercept,
+            self.pr_mm,
+            self.pr_um,
+            self.pr_uu,
+            self.sd_alpha,
+            self.sd_beta,
+            self.sd_alphabeta,
+            self.sd_weight,
+            self.sd_intercept,
+            self.sd_pr_mm,
+            self.sd_pr_um,
+            self.sd_pr_uu,
+            self.ci_alpha.0,
+            self.ci_alpha.1,
+            self.ci_beta.0,
+            self.ci_beta.1,
+            self.ci_alphabeta.0,
+            self.ci_alphabeta.1,
+            self.ci_weight.0,
+            self.ci_weight.1,
+            self.ci_intercept.0,
+            self.ci_intercept.1,
+            self.ci_pr_mm.0,
+            self.ci_pr_mm.1,
+            self.ci_pr_um.0,
+            self.ci_pr_um.1,
+            self.ci_pr_uu.0,
+            self.ci_pr_uu.1,
+            
+
+        );
+
+        file.write_all(content.as_bytes())
     }
 }
 
-#[derive(Debug)]
-pub struct StandardDeviations {
-    pub alpha: f64,
-    pub beta: f64,
-    pub alpha_beta: f64,
-    pub weight: f64,
-    pub intercept: f64,
-    pub p_mm: f64,
-    pub p_um: f64,
-    pub p_uu: f64,
+impl Display   for Analysis {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, 
+            "Alpha\t{}\nBeta\t{}\nAlphaBeta\t{}\nWeight\t{}\nIntercept\t{}\nPrMM\t{}\nPrUM\t{}\nPrUU\t{}\nSDAlpha\t{}\nSDBeta\t{}\nSDAlphaBeta\t{}\nSDWeight\t{}\nSDIntercept\t{}\nSDPrMM\t{}\nSDPrUM\t{}\nSDPrUU\t{}\nCIAlpha\t{}-{}\nCIBeta\t{}-{}\nCIAlphaBeta\t{}-{}\nCIWeight\t{}-{}\nCIIntercept\t{}-{}\nCIPrMM\t{}-{}\nCIPrUM\t{}-{}\nCIPrUU\t{}-{}\n",
+            self.alpha,
+            self.beta,
+            self.alphabeta,
+            self.weight,
+            self.intercept,
+            self.pr_mm,
+            self.pr_um,
+            self.pr_uu,
+            self.sd_alpha,
+            self.sd_beta,
+            self.sd_alphabeta,
+            self.sd_weight,
+            self.sd_intercept,
+            self.sd_pr_mm,
+            self.sd_pr_um,
+            self.sd_pr_uu,
+            self.ci_alpha.0,
+            self.ci_alpha.1,
+            self.ci_beta.0,
+            self.ci_beta.1,
+            self.ci_alphabeta.0,
+            self.ci_alphabeta.1,
+            self.ci_weight.0,
+            self.ci_weight.1,
+            self.ci_intercept.0,
+            self.ci_intercept.1,
+            self.ci_pr_mm.0,
+            self.ci_pr_mm.1,
+            self.ci_pr_um.0,
+            self.ci_pr_um.1,
+            self.ci_pr_uu.0,
+            self.ci_pr_uu.1,
+            
+
+        )
+    }
 }
+
+/// Lower and upper bounds of the confidence interval for a given probability
+///
+/// (lower, upper)
+///
+/// (0.025, 0.975) for 95% CI
+#[derive(Debug, Clone)]
+pub struct CI(pub f64, pub f64);
+
+
+pub type PredictedDivergence = Vec<f64>;
+pub type Residuals = Vec<f64>;
 
 pub struct Progress(pub ProgressBar);
 
@@ -87,23 +195,6 @@ impl Display for Model {
             f,
             "Model:\n\tAlpha: {}\n\tBeta: {}\n\tWeight: {}\n\tIntercept: {}",
             self.alpha, self.beta, self.weight, self.intercept
-        )
-    }
-}
-
-impl Display for StandardDeviations {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Standard Deviations:\n\tAlpha: {}\n\tBeta: {}\n\tBeta/Alpha: {}\n\tWeight: {}\n\tIntercept: {}\nPr_mm: {}\nPr_um: {}\nPr_uu: {}",
-            self.alpha,
-            self.beta,
-            self.alpha_beta,
-            self.weight,
-            self.intercept,
-            self.p_mm,
-            self.p_um,
-            self.p_uu,
         )
     }
 }
@@ -203,11 +294,12 @@ impl Model {
         (self.beta * ((1.0 - self.beta).powi(2) - (1.0 - self.alpha).powi(2) - 1.0))
             / ((self.alpha + self.beta) * ((self.alpha + self.beta - 1.0).powi(2) - 2.0))
     }
-    pub fn to_file(&self, path: &Path, errors: &StandardDeviations) -> std::io::Result<()> {
+    pub fn to_file(&self, path: &Path) -> std::io::Result<()> {
         println!("Writing model to file: {}", path.display());
         let mut file = File::create(path).unwrap();
-        let  content = format!(
-            "Alpha {}\nBeta {}\nStandard_Errors_Alpha {}\nStandard_Errors_Beta {}\nStandard_Errors_Alpha_Beta {}\n", self.alpha, self.beta, errors.alpha, errors.beta, errors.alpha_beta
+        let content = format!(
+            "Alpha {}\nBeta {}\nWeight {}\n Intercept {}\n",
+            self.alpha, self.beta, self.weight, self.intercept
         );
 
         file.write_all(content.as_bytes())
