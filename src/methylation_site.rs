@@ -351,7 +351,11 @@ impl MethylationSite {
         match results {
             Ok(methylation_site) => Some(methylation_site),
             Err(e) => {
-                println!("Non-fatal error when parsing methylation site: {e}\nLine: {s}");
+                // Log lines that could not be parsed
+                // Ignore header
+                if !s.contains("seqnames") {
+                    println!("Non-fatal error when parsing methylation site: {e}\nLine: {s}");
+                }
                 None
             }
         }

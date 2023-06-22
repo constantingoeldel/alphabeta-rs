@@ -1,3 +1,4 @@
+use core::panic;
 use std::{
     fmt::Display,
     fs::{self, File, OpenOptions},
@@ -271,14 +272,12 @@ impl Windows {
                     filename
                 ));
                 let mut file = OpenOptions::new()
-                    .append(true)
+                    .write(true)
                     .create(true)
-                    .open(&output_file)?;
-                let metadata = file.metadata();
-                if metadata.unwrap().len() == 0 {
-                    // On first write to file, create header line
-                    file.write_all("seqnames\tstart\tstrand\tcontext\tcounts.methylated\tcounts.total\tposteriorMax\tstatus\trc.meth.lvl\tcontext.trinucleotide\n".as_bytes())?;
-                }
+                    .open(&output_file)
+                    .unwrap();
+
+                file.write_all("seqnames\tstart\tstrand\tcontext\tcounts.methylated\tcounts.total\tposteriorMax\tstatus\trc.meth.lvl\tcontext.trinucleotide\n".as_bytes())?;
                 file.write_all(cg_sites.iter().map(|e| &e.original).join("\n").as_bytes())?;
             }
         }
