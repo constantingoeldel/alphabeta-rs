@@ -9,29 +9,29 @@
 # --name wildtype \
 # -s 1 -w 5 
 
-# WT
-cargo run --release --bin metaprofile -- \
--m ../methylome/within_gbM_genes/ \
--g ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
--o ../windows/testing \
--e ../methylome/edgelist.txt \
--n ../methylome/nodelist.txt \
---alphabeta \
---name wildtype \
--s 1 -w 5 
-
-
-
-# # CMT3
-# cargo run --release --bin windows -- \
-# -m /mnt/nas/zhilin/others/constantin-sergio/CMT3/total_original_methylome \
+# # WT
+# cargo run --release --bin metaprofile -- \
+# -m ../methylome/within_gbM_genes/ \
 # -g ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
-# -o /mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/cmt3 \
-# -e /home/constantin/methylome/cmt3_edgelist.txt \
-# -n /home/constantin/methylome/cmt3_nodelist.txt \
+# -o ../windows/testing \
+# -e ../methylome/edgelist.txt \
+# -n ../methylome/nodelist.txt \
 # --alphabeta \
-# --name cmt3 \
+# --name wildtype \
 # -s 1 -w 5 
+
+
+
+# CMT3
+cargo run --release --bin metaprofile -- \
+-m /mnt/nas/zhilin/others/constantin-sergio/CMT3/total_original_methylome \
+-g ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
+-o /mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/cmt3_new \
+-e /home/constantin/methylome/cmt3_edgelist.txt \
+-n /home/constantin/methylome/cmt3_nodelist.txt \
+--alphabeta \
+--name cmt3 \
+-s 1 -w 5 
 
 # suv 4/5/6
 # cargo run --release --bin windows -- \

@@ -20,7 +20,25 @@ alphabeta --help
 metaprofile --help
 ```
 
+### Windows
+
 Windows is currently not supported, but using [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) on Windows works.
+
+Open powershell and run:
+
+```powershell
+wsl --install -d ubuntu
+```
+
+Configure your user, open Ubuntu and then install the dependencies and the program:
+
+```bash
+sudo apt update
+sudo apt install build-essential pkg-config libssl-dev
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+cargo install alphabeta
+```
+
 
 <details>
 <summary>I get an error!</summary>
