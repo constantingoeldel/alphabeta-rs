@@ -10,8 +10,9 @@ use ndarray_stats::Quantile1dExt;
 use noisy_float::types::n64;
 
 use crate::{
+    analysis::{Analysis, RawAnalysis},
     pedigree::Pedigree,
-    structs::{Analysis, Model, PredictedDivergence, Problem, Progress, Residuals, CI},
+    structs::{Model, PredictedDivergence, Problem, Progress, Residuals},
     *,
 };
 
@@ -109,50 +110,8 @@ pub fn run(
         output_dir,
     )?;
 
-    let alphabeta = results.column(1).div(&results.column(0));
-
-    let ci = |val: ArrayView1<f64>| {
-        let q = val
-            .map(|x| n64(*x))
-            .to_owned()
-            .quantiles_mut(&array![n64(0.025), n64(0.975)], &Linear)
-            .unwrap();
-
-        CI(q[0].raw(), q[1].raw())
-    };
-
-    let analysis = Analysis {
-        alpha: results.column(0).mean().unwrap(),
-        beta: results.column(1).mean().unwrap(),
-        alphabeta: alphabeta.mean().unwrap(),
-        weight: results.column(2).mean().unwrap(),
-        intercept: results.column(3).mean().unwrap(),
-        pr_mm: results.column(4).mean().unwrap(),
-        pr_um: results.column(5).mean().unwrap(),
-        pr_uu: results.column(6).mean().unwrap(),
-
-        sd_alpha: results.column(0).std(1.0),
-        sd_beta: results.column(1).std(1.0),
-
-        sd_alphabeta: alphabeta.std(1.0),
-
-        sd_weight: results.column(2).std(1.0),
-        sd_intercept: results.column(3).std(1.0),
-
-        sd_pr_mm: results.column(4).std(1.0),
-        sd_pr_um: results.column(5).std(1.0),
-        sd_pr_uu: results.column(6).std(1.0),
-
-        ci_alpha: ci(results.column(0)),
-        ci_beta: ci(results.column(1)),
-        ci_alphabeta: ci(alphabeta.view()),
-        ci_weight: ci(results.column(2)),
-        ci_intercept: ci(results.column(3)),
-
-        ci_pr_mm: ci(results.column(4)),
-        ci_pr_um: ci(results.column(5)),
-        ci_pr_uu: ci(results.column(6)),
-    };
+    let raw_analysis = RawAnalysis(results);
+    let analysis = raw_analysis.into();
 
     Ok(analysis)
 }

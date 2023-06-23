@@ -2,11 +2,8 @@ use anyhow::anyhow;
 use indicatif::MultiProgress;
 
 use crate::{
-    arguments::AlphaBeta as Args,
-    pedigree::Pedigree,
-    progress::specific,
-    structs::{Analysis, Model},
-    *,
+    analysis::Analysis, arguments::AlphaBeta as Args, pedigree::Pedigree, progress::specific,
+    structs::Model, *,
 };
 
 /// Run AlphaBeta
@@ -52,14 +49,24 @@ pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, Analysis, Pedigre
     Ok((model, result, pedigree, 1.0 - p0uu))
 }
 
-pub fn steady_state(alpha: f64, beta: f64) -> f64 {
-    let pi_1 = (alpha * ((1.0 - alpha).powi(2) - (1.0 - beta).powi(2) - 1.0))
-        / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0));
+/// Calculate the steady state UU level
+pub fn p_uu_est(alpha: f64, beta: f64) -> f64 {
+    (beta * ((1.0 - beta).powi(2) - (1.0 - alpha).powi(2) - 1.0))
+        / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0))
+}
 
+/// Calculate the steady state MM level
+pub fn p_mm_est(alpha: f64, beta: f64) -> f64 {
+    (alpha * ((1.0 - alpha).powi(2) - (1.0 - beta).powi(2) - 1.0))
+        / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0))
+}
+
+/// Calculate the steady state methylation level
+pub fn steady_state(alpha: f64, beta: f64) -> f64 {
     let pi_2 = (4.0 * alpha * beta * (alpha + beta - 2.0))
         / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0));
 
-    pi_1 + 0.5 * pi_2
+    p_mm_est(alpha, beta) + 0.5 * pi_2
 }
 
 #[cfg(test)]

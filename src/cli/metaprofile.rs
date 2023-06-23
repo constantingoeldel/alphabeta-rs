@@ -2,10 +2,9 @@ use std::fs;
 
 use alphabeta::{
     alphabeta::steady_state, arguments::Windows as Args, extract::extract, genes::Region, plot,
-    progress, structs::Analysis,
+    progress, analysis::Analysis,
 };
 use clap::Parser;
-use itertools::Itertools;
 
 fn main() {
     let args = Args::parse();

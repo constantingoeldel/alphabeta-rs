@@ -31,137 +31,6 @@ pub struct Model {
     pub intercept: f64,
 }
 
-#[derive(Debug, Clone)]
-pub struct Analysis {
-    pub alpha: f64,
-    pub beta: f64,
-    pub alphabeta: f64,
-    pub weight: f64,
-    pub intercept: f64,
-
-    pub pr_mm: f64,
-    pub pr_um: f64,
-    pub pr_uu: f64,
-
-    pub sd_alpha: f64,
-    pub sd_beta: f64,
-    pub sd_alphabeta: f64,
-    pub sd_weight: f64,
-    pub sd_intercept: f64,
-
-    pub sd_pr_mm: f64,
-    pub sd_pr_um: f64,
-    pub sd_pr_uu: f64,
-
-    pub ci_alpha: CI,
-    pub ci_beta: CI,
-    /// Beta/Alpha
-    pub ci_alphabeta: CI,
-    pub ci_weight: CI,
-    pub ci_intercept: CI,
-
-    pub ci_pr_mm: CI,
-    pub ci_pr_um: CI,
-    pub ci_pr_uu: CI,
-}
-
-impl Analysis {
-    pub fn to_file(&self, path: &Path) -> std::io::Result<()> {
-        println!("Writing model to file: {}", path.display());
-        let mut file = File::create(path).unwrap();
-        let  content = format!(
-            "Alpha\t{}\nBeta\t{}\nAlphaBeta\t{}\nWeight\t{}\nIntercept\t{}\nPrMM\t{}\nPrUM\t{}\nPrUU\t{}\nSDAlpha\t{}\nSDBeta\t{}\nSDAlphaBeta\t{}\nSDWeight\t{}\nSDIntercept\t{}\nSDPrMM\t{}\nSDPrUM\t{}\nSDPrUU\t{}\nCIAlpha\t{}-{}\nCIBeta\t{}-{}\nCIAlphaBeta\t{}-{}\nCIWeight\t{}-{}\nCIIntercept\t{}-{}\nCIPrMM\t{}-{}\nCIPrUM\t{}-{}\nCIPrUU\t{}-{}\n",
-            self.alpha,
-            self.beta,
-            self.alphabeta,
-            self.weight,
-            self.intercept,
-            self.pr_mm,
-            self.pr_um,
-            self.pr_uu,
-            self.sd_alpha,
-            self.sd_beta,
-            self.sd_alphabeta,
-            self.sd_weight,
-            self.sd_intercept,
-            self.sd_pr_mm,
-            self.sd_pr_um,
-            self.sd_pr_uu,
-            self.ci_alpha.0,
-            self.ci_alpha.1,
-            self.ci_beta.0,
-            self.ci_beta.1,
-            self.ci_alphabeta.0,
-            self.ci_alphabeta.1,
-            self.ci_weight.0,
-            self.ci_weight.1,
-            self.ci_intercept.0,
-            self.ci_intercept.1,
-            self.ci_pr_mm.0,
-            self.ci_pr_mm.1,
-            self.ci_pr_um.0,
-            self.ci_pr_um.1,
-            self.ci_pr_uu.0,
-            self.ci_pr_uu.1,
-            
-
-        );
-
-        file.write_all(content.as_bytes())
-    }
-}
-
-impl Display   for Analysis {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, 
-            "Alpha\t{}\nBeta\t{}\nAlphaBeta\t{}\nWeight\t{}\nIntercept\t{}\nPrMM\t{}\nPrUM\t{}\nPrUU\t{}\nSDAlpha\t{}\nSDBeta\t{}\nSDAlphaBeta\t{}\nSDWeight\t{}\nSDIntercept\t{}\nSDPrMM\t{}\nSDPrUM\t{}\nSDPrUU\t{}\nCIAlpha\t{}-{}\nCIBeta\t{}-{}\nCIAlphaBeta\t{}-{}\nCIWeight\t{}-{}\nCIIntercept\t{}-{}\nCIPrMM\t{}-{}\nCIPrUM\t{}-{}\nCIPrUU\t{}-{}\n",
-            self.alpha,
-            self.beta,
-            self.alphabeta,
-            self.weight,
-            self.intercept,
-            self.pr_mm,
-            self.pr_um,
-            self.pr_uu,
-            self.sd_alpha,
-            self.sd_beta,
-            self.sd_alphabeta,
-            self.sd_weight,
-            self.sd_intercept,
-            self.sd_pr_mm,
-            self.sd_pr_um,
-            self.sd_pr_uu,
-            self.ci_alpha.0,
-            self.ci_alpha.1,
-            self.ci_beta.0,
-            self.ci_beta.1,
-            self.ci_alphabeta.0,
-            self.ci_alphabeta.1,
-            self.ci_weight.0,
-            self.ci_weight.1,
-            self.ci_intercept.0,
-            self.ci_intercept.1,
-            self.ci_pr_mm.0,
-            self.ci_pr_mm.1,
-            self.ci_pr_um.0,
-            self.ci_pr_um.1,
-            self.ci_pr_uu.0,
-            self.ci_pr_uu.1,
-            
-
-        )
-    }
-}
-
-/// Lower and upper bounds of the confidence interval for a given probability
-///
-/// (lower, upper)
-///
-/// (0.025, 0.975) for 95% CI
-#[derive(Debug, Clone)]
-pub struct CI(pub f64, pub f64);
-
-
 pub type PredictedDivergence = Vec<f64>;
 pub type Residuals = Vec<f64>;
 
@@ -346,7 +215,7 @@ impl CostFunction for Problem {
             square_sum += (ped - p.intercept - div).powi(2)
                 + self.eqp_weight
                     * self.pedigree.nrows() as f64
-                    * (divergence.puuinf_est - self.eqp).powi(2);
+                    * (divergence.p_uu - self.eqp).powi(2);
         }
 
         Ok(square_sum)

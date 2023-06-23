@@ -1,11 +1,10 @@
-use crate::{arguments::Windows, structs::Analysis, *};
+use crate::{arguments::Windows, *, analysis::Analysis};
 use itertools::Itertools;
 use plotters::prelude::*;
 use std::path::Path;
 
 pub fn metaplot(analyses: &[Analysis], args: &Windows) -> Result<()> {
     let output_file = args.output_dir.join("metaplot.png");
-    dbg!(&output_file);
 
     let root = BitMapBackend::new(&output_file, (640 * 2, 480 * 2)).into_drawing_area();
 
@@ -84,7 +83,6 @@ pub fn metaplot(analyses: &[Analysis], args: &Windows) -> Result<()> {
 
 pub fn bootstrap(alphas: Vec<f64>, betas: Vec<f64>, output_dir: &Path) -> Result<()> {
     let output_file = output_dir.join("bootstrap.png");
-    dbg!(&output_file);
 
     let max = alphas
         .iter()
