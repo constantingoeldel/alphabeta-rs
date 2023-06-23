@@ -1,13 +1,13 @@
 use indicatif::ProgressBar;
 use rand::{distributions::Slice, thread_rng, Rng};
 use rayon::prelude::*;
-use std::{ops::Div, path::Path, sync::Mutex};
+use std::{path::Path, sync::Mutex};
 
 use argmin::{core::Executor, solver::neldermead::NelderMead};
-use ndarray::{array, s, Array1, Array2, ArrayView1, Axis};
-use ndarray_stats::interpolate::Linear;
-use ndarray_stats::Quantile1dExt;
-use noisy_float::types::n64;
+use ndarray::{array, s, Array1, Array2, Axis};
+
+
+
 
 use crate::{
     analysis::{Analysis, RawAnalysis},

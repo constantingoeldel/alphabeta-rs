@@ -1,4 +1,4 @@
-use core::panic;
+
 use std::{
     fmt::Display,
     fs::{self, File, OpenOptions},
