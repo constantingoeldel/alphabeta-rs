@@ -354,7 +354,7 @@ impl MethylationSite {
                 // Log lines that could not be parsed
                 // Ignore header
                 if !s.contains("seqnames") {
-                    println!("Non-fatal error when parsing methylation site: {e}\nLine: {s}");
+                    print_dev!("Non-fatal error when parsing methylation site: {e}\nLine: {s}");
                 }
                 None
             }
@@ -383,9 +383,9 @@ impl MethylationSite {
     /// The lifetime of the genome is longer than the lifetime of the CG site.
     /// GG sites exist only while a single methylation file is being processed but the genome is loaded once and exists for the entire program
     pub fn find_gene<'long>(&self, genome: &'long Genome, args: &Args) -> Option<&'long Gene> {
-        let chromosome = genome
-            .get(&self.chromosome)
-            .expect("Chromosome does not exist when it should. This is a bug.");
+        // This can fail sensibly if there are chromosomes in the methylome files that are not in the annotation files
+        let chromosome = genome.get(&self.chromosome)?;
+
         let strand: &Vec<Gene> = match self.strand {
             Strand::Sense => &chromosome.sense, // This is a performance hit. Is there a better way to do this?
             Strand::Antisense => &chromosome.antisense,
@@ -534,6 +534,13 @@ mod tests {
         let line = "1	23151	+	CG	0	8	0.9999	";
         let cg = MethylationSite::from_methylome_file_line(line, false);
         assert!(cg.is_none());
+    }
+
+    #[test]
+    fn test_cmt3_line_not_cg() {
+        let line = "1	25600	+	CHH	0	94	0.9999	U	0.0043	CAT";
+        let site = MethylationSite::from_methylome_file_line(line, false);
+        assert_eq!(site.is_none(), true);
     }
 
     #[test]
