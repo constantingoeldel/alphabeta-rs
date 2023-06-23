@@ -30,7 +30,7 @@ pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, Analysis, Pedigre
         p0uu,
         1.0,
         args.iterations,
-        Some(pb_neutral.clone()),
+        Some(&pb_neutral),
     )
     .map_err(|e| anyhow!("Model failed: {}", e))?;
     let result = boot_model::run(
@@ -42,7 +42,7 @@ pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, Analysis, Pedigre
         p0uu,
         1.0,
         args.iterations,
-        Some(pb_boot.clone()),
+        Some(&pb_boot),
         &args.output,
     )
     .map_err(|e| anyhow!("Bootstrap failed: {}", e))?;

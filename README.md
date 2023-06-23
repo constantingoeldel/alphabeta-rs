@@ -73,10 +73,10 @@ Options:
 Usage: metaprofile [OPTIONS] --methylome <METHYLOME> --genome <GENOME> --output-dir <OUTPUT_DIR>
 
 Options:
-  -m, --methylome <METHYLOME>      Path to directory containing the methlyome files from which to extract the CG-sites
+  -m, --methylome <METHYLOME>      Path of directory containing the methlyome files from which to extract the CG-sites
   -g, --genome <GENOME>            Path of the annotation file containing information about beginning and end of gbM-genes
   -w, --window-size <WINDOW_SIZE>  Size of the window in percent of the gbM-gene length or in basepair number if --absolute is supplied [default: 5]
-  -s, --window-step <WINDOW_STEP>  Size of the step between the start of each window. Default value is window-size, so no overlapp happens
+  -s, --window-step <WINDOW_STEP>  Size of the step between the start of each window. Default value is window-size, so no overlapp happens [default: 0]
   -o, --output-dir <OUTPUT_DIR>    Path of the directory where extracted segments shall be stored
   -a, --absolute                   Use absolute length in base-pairs for window size instead of percentage of gene length
   -c, --cutoff <CUTOFF>            Number of basepairs to include upstream and downstream of gene [default: 2048]
@@ -85,7 +85,7 @@ Options:
   -e, --edges <EDGES>              Provide an edgefile
   -n, --nodes <NODES>              Provide a nodefile - paths will be updated to match the output directory
       --alphabeta                  Also run AlphaBeta on every window after extraction, results will be stored in the same directory as the segments
-      --name <NAME>                Name of the run to be used when storing the result in Postgres [default: "Instant { tv_sec: 36502, tv_nsec: 792133216 }"]
+      --name <NAME>                Name of the run to be used when storing the result in Postgres [default: "Anonymous Run 1684308724"]
   -f, --force                      Overwrite existing content in output directory? If false (default) it will reuse existing windows
       --cutoff-gene-length         Let the cutoff be the gene length instead of a fixed number. So if the gene is 1000 bp long, the cutoff will be 1000 bp instead of 2048 bp (the default). This option takes preference over the cutoff option
   -h, --help                       Print help

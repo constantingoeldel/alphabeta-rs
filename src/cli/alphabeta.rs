@@ -28,7 +28,7 @@ fn main() {
                 .to_file(&args.output.join("pedigree.txt"))
                 .expect("Failed to write pedigree");
             analysis
-                .to_file(&args.output.join("pedigree.txt"))
+                .to_file(&args.output.join("analysis.txt"))
                 .expect("Failed to write results");
         }
     }

@@ -16,9 +16,10 @@ pub fn run(
     eqp: f64,
     eqp_weight: f64,
     n_starts: u64,
-    pb: Option<ProgressBar>,
+    pb: Option<&ProgressBar>,
 ) -> Result<(Model, PredictedDivergence, Residuals), Box<dyn std::error::Error>> {
-    let pb = pb.unwrap_or_else(move || Progress::new("ABneutral", n_starts).0);
+    let alternative_pb = Progress::new("ABneutral", n_starts).0;
+    let pb = pb.unwrap_or(&alternative_pb);
     let p0mm = 1.0 - p0uu;
     let p0um = 0.0;
     let max_divergence = *pedigree

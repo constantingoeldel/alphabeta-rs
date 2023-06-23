@@ -24,10 +24,11 @@ pub fn run(
     eqp: f64,
     eqp_weight: f64,
     n_boot: u64,
-    pb: Option<ProgressBar>,
+    pb: Option<&ProgressBar>,
     output_dir: &Path,
 ) -> Result<Analysis, Box<dyn std::error::Error>> {
-    let pb = pb.unwrap_or_else(|| Progress::new("BootModel", n_boot).0);
+    let alternative_pb = Progress::new("BootModel", n_boot).0;
+    let pb = pb.unwrap_or(&alternative_pb);
 
     let p0mm = 1.0 - p0uu;
     let p0um = 0.0;
@@ -152,8 +153,6 @@ pub fn run(
         ci_pr_um: ci(results.column(5)),
         ci_pr_uu: ci(results.column(6)),
     };
-
-    // Quantiles not implemented yet
 
     Ok(analysis)
 }

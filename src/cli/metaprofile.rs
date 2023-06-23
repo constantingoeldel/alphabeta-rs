@@ -5,6 +5,7 @@ use alphabeta::{
     progress, structs::Analysis,
 };
 use clap::Parser;
+use itertools::Itertools;
 
 fn main() {
     let args = Args::parse();
@@ -57,24 +58,27 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
         }
     }
     pb.finish();
-    let mut print = String::from("run;window;cg_count;region;alpha;beta;alpha_error;beta_error;1/2*(alpha+beta);pred_steady_state;obs_steady_state\n");
-
+    let mut print = String::from("run;window;cg_count;region;alpha;beta;1/2*(alpha+beta);pred_steady_state;obs_steady_state;sd_alpha;sd_beta;ci_alpha_0.025;ci_alpha_0.975;ci_beta_0.025;ci_beta_0.975\n");
     for (i, ((model, analysis, region, obs_meth_lvl), d)) in
         results.iter().zip(distribution.iter()).enumerate()
     {
         print += &format!(
-            "{};{};{};{};{};{};{};{};{};{};{}\n",
+            "{};{};{};{};{};{};{};{};{};{};{};{};{};{};{}\n",
             args.name,
             i,
             d,
             region,
             model.alpha,
             model.beta,
-            analysis.alpha,
-            analysis.beta,
             0.5 * (model.alpha + model.beta),
             steady_state(model.alpha, model.beta),
-            obs_meth_lvl
+            obs_meth_lvl,
+            analysis.sd_alpha,
+            analysis.sd_beta,
+            analysis.ci_alpha.0,
+            analysis.ci_alpha.1,
+            analysis.ci_beta.0,
+            analysis.ci_beta.1
         )
     }
 
@@ -89,6 +93,7 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
         .iter()
         .map(|r| r.1.clone())
         .collect::<Vec<Analysis>>();
+
     plot::metaplot(&analyses, &args).expect("Could not plot results");
 }
 
