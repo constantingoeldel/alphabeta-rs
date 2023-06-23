@@ -6,7 +6,7 @@ use noisy_float::types::n64;
 
 /// 2D-Array containing the results of all the iterations of the bootstrapping analysis.
 /// 
-/// Dimensions: 7 x n_boot
+/// Dimensions: 7 x n_bootze
 /// 
 /// Columns: Alpha, Beta, Weight, Intercept, Pr(MM), Pr(UM), Pr(UU)
 pub struct RawAnalysis(pub Array2<f64>);
@@ -46,9 +46,11 @@ pub struct Analysis {
     pub ci_pr_uu: CI,
 }
 
-impl From<RawAnalysis> for Analysis {
-    fn from(raw: RawAnalysis) -> Self {
-        let results = raw.0;
+impl RawAnalysis{
+  pub  fn analyze(&self) -> Analysis {
+        
+    
+    let results = self.0.view();
     let alphabeta = results.column(1).div(&results.column(0));
 
     let ci = |val: ArrayView1<f64>| {

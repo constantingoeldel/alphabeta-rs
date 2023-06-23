@@ -1,10 +1,11 @@
-use std::fs;
-
 use alphabeta::{
-    alphabeta::steady_state, arguments::Windows as Args, extract::extract, genes::Region, plot,
-    progress, analysis::Analysis,
+    alphabeta::steady_state, analysis::Analysis, arguments::Windows as Args, extract::extract,
+    genes::Region, plot, progress,
 };
 use clap::Parser;
+use ndarray::{Array, Array3, Axis};
+use ndarray_npy::write_npy;
+use std::fs;
 
 fn main() {
     let args = Args::parse();
@@ -35,6 +36,9 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
     };
 
     let (multi, pb) = progress::multi(total_steps as u64);
+
+    // Create an empty 3D array to store the raw results
+    let mut raw_analyses = Array::zeros((7, args.iterations, 0));
     for region in regions {
         let max = if args.absolute { region.1 } else { 100 };
 
@@ -45,13 +49,15 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
                 args.output_dir
                     .join(region.0.to_string())
                     .join(window.to_string()),
+                args.iterations,
             );
 
             let alphabeta_result = alphabeta::alphabeta::run(args, &multi);
             match alphabeta_result {
                 Err(e) => println!("Error: {e}"),
-                Ok((model, deviations, _, obs_meth_lvl)) => {
-                    results.push((model, deviations, region.0.clone(), obs_meth_lvl))
+                Ok((model, analysis, raw_analysis, _, obs_meth_lvl)) => {
+                    results.push((model, analysis, region.0.clone(), obs_meth_lvl));
+                    raw_analyses.push(Axis(2), raw_analysis.0.view()).unwrap();
                 }
             }
         }
@@ -92,6 +98,9 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
         .iter()
         .map(|r| r.1.clone())
         .collect::<Vec<Analysis>>();
+
+    write_npy(args.output_dir.join("raw.npy"), &raw_analyses)
+        .expect("Could not save raw results to file.");
 
     plot::metaplot(&analyses, &args).expect("Could not plot results");
 }

@@ -1,10 +1,4 @@
-use std::{
-    fmt::{Display},
-    fs::File,
-    io::Write,
-    ops::Deref,
-    path::Path,
-};
+use std::{fmt::Display, fs::File, io::Write, ops::Deref, path::Path};
 
 use argmin::core::CostFunction;
 
@@ -37,8 +31,8 @@ pub type Residuals = Vec<f64>;
 pub struct Progress(pub ProgressBar);
 
 impl Progress {
-    pub fn new(name: &'static str, iterations: u64) -> Self {
-        let pb = ProgressBar::new(iterations);
+    pub fn new(name: &'static str, iterations: usize) -> Self {
+        let pb = ProgressBar::new(iterations as u64);
 
         pb.set_message(name);
         pb.set_style(

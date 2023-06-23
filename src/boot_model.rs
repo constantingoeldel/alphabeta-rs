@@ -6,9 +6,6 @@ use std::{path::Path, sync::Mutex};
 use argmin::{core::Executor, solver::neldermead::NelderMead};
 use ndarray::{array, s, Array1, Array2, Axis};
 
-
-
-
 use crate::{
     analysis::{Analysis, RawAnalysis},
     pedigree::Pedigree,
@@ -24,10 +21,10 @@ pub fn run(
     p0uu: f64,
     eqp: f64,
     eqp_weight: f64,
-    n_boot: u64,
+    n_boot: usize,
     pb: Option<&ProgressBar>,
     output_dir: &Path,
-) -> Result<Analysis, Box<dyn std::error::Error>> {
+) -> Result<(Analysis, RawAnalysis), Box<dyn std::error::Error>> {
     let alternative_pb = Progress::new("BootModel", n_boot).0;
     let pb = pb.unwrap_or(&alternative_pb);
 
@@ -111,7 +108,7 @@ pub fn run(
     )?;
 
     let raw_analysis = RawAnalysis(results);
-    let analysis = raw_analysis.into();
+    let analysis = raw_analysis.analyze();
 
-    Ok(analysis)
+    Ok((analysis, raw_analysis))
 }

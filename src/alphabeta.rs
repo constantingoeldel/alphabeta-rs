@@ -2,9 +2,15 @@ use anyhow::anyhow;
 use indicatif::MultiProgress;
 
 use crate::{
-    analysis::Analysis, arguments::AlphaBeta as Args, pedigree::Pedigree, progress::specific,
-    structs::Model, *,
+    analysis::{Analysis, RawAnalysis},
+    arguments::AlphaBeta as Args,
+    pedigree::Pedigree,
+    progress::specific,
+    structs::Model,
+    *,
 };
+
+type ObsSteadyState = f64;
 
 /// Run AlphaBeta
 ///
@@ -14,7 +20,10 @@ use crate::{
 /// * `Analysis` - The analysis of the model, done by bootstrapping
 /// * `Pedigree` - The pedigree used for the analysis
 /// * The observed steady state methylation level
-pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, Analysis, Pedigree, f64)> {
+pub fn run(
+    args: Args,
+    bars: &MultiProgress,
+) -> Result<(Model, Analysis, RawAnalysis, Pedigree, ObsSteadyState)> {
     println!("Building pedigree...");
     let (pedigree, p0uu) = Pedigree::build(&args.nodes, &args.edges, args.posterior_max_filter)
         .map_err(|e| anyhow!("Error while building pedigree: {}", e))?;
@@ -30,7 +39,7 @@ pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, Analysis, Pedigre
         Some(&pb_neutral),
     )
     .map_err(|e| anyhow!("Model failed: {}", e))?;
-    let result = boot_model::run(
+    let (analysis, raw_analysis) = boot_model::run(
         &pedigree,
         &model,
         pred_div,
@@ -46,7 +55,7 @@ pub fn run(args: Args, bars: &MultiProgress) -> Result<(Model, Analysis, Pedigre
     bars.remove(&pb_neutral);
     bars.remove(&pb_boot);
 
-    Ok((model, result, pedigree, 1.0 - p0uu))
+    Ok((model, analysis, raw_analysis, pedigree, 1.0 - p0uu))
 }
 
 /// Calculate the steady state UU level
@@ -102,7 +111,6 @@ mod tests {
             &output_dir,
         )
         .expect("Bootstrap failed");
-        dbg!(result);
         assert_within_10_percent!(model.alpha, 5.7985750419976e-05);
         assert_within_10_percent!(model.beta, 0.00655710970515347);
         assert_within_10_percent!(p0uu, 0.991008120326199);
@@ -124,6 +132,6 @@ mod tests {
 
         assert!(res.is_ok());
 
-        println!("{:?}", res.unwrap());
+        println!("{:?}", res.unwrap().1);
     }
 }

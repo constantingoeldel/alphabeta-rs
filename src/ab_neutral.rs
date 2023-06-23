@@ -15,7 +15,7 @@ pub fn run(
     p0uu: f64,
     eqp: f64,
     eqp_weight: f64,
-    n_starts: u64,
+    n_starts: usize,
     pb: Option<&ProgressBar>,
 ) -> Result<(Model, PredictedDivergence, Residuals), Box<dyn std::error::Error>> {
     let alternative_pb = Progress::new("ABneutral", n_starts).0;
