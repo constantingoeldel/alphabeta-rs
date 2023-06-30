@@ -1,6 +1,6 @@
 # WT
 cargo run --release --bin metaprofile -- \
--m ../methylome/within_gbM_genes/ \
+-m /mnt/nas/zhilin/others/MA3_new_total_original_methylome/ \
 -g ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
 -o /mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/wt_ci \
 -e ../methylome/edgelist.txt \

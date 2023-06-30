@@ -38,7 +38,7 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
     let (multi, pb) = progress::multi(total_steps as u64);
 
     // Create an empty 3D array to store the raw results
-    let mut raw_analyses = Array::zeros((7, args.iterations, 0));
+    let mut raw_analyses = Array::zeros((args.iterations, 7, 0));
     for region in regions {
         let max = if args.absolute { region.1 } else { 100 };
 
@@ -99,7 +99,8 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
         .map(|r| r.1.clone())
         .collect::<Vec<Analysis>>();
 
-    write_npy(args.output_dir.join("raw.npy"), &raw_analyses)
+    analyses
+        .write_npy(args.output_dir.join("raw.npy"), &raw_analyses)
         .expect("Could not save raw results to file.");
 
     plot::metaplot(&analyses, &args).expect("Could not plot results");

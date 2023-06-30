@@ -3,8 +3,8 @@ use std::{fmt::Write, time::Duration};
 use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressState, ProgressStyle};
 
 pub fn specific(bars: &MultiProgress, iterations: usize) -> (ProgressBar, ProgressBar) {
-    let pb_neutral = bars.add(ProgressBar::new(iterations as u64));
-    let pb_boot = bars.add(ProgressBar::new(iterations as u64));
+    let pb_neutral = bars.insert(0, ProgressBar::new(iterations as u64));
+    let pb_boot = bars.insert(1, ProgressBar::new(iterations as u64));
 
     pb_neutral.set_message("ABNeutral");
     pb_boot.set_message("BootModel");
