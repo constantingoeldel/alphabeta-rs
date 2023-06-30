@@ -99,8 +99,7 @@ fn alphabeta_multiple(args: Args, max_gene_length: u32, distribution: Vec<i32>) 
         .map(|r| r.1.clone())
         .collect::<Vec<Analysis>>();
 
-    analyses
-        .write_npy(args.output_dir.join("raw.npy"), &raw_analyses)
+    write_npy(args.output_dir.join("raw.npy"), &raw_analyses)
         .expect("Could not save raw results to file.");
 
     plot::metaplot(&analyses, &args).expect("Could not plot results");
