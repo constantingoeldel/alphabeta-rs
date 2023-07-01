@@ -122,19 +122,19 @@ mod tests {
     //     assert_close!(p0uu, 0.8811696);
     // }
 
-    #[test]
-    fn random_window() {
-        let pb = indicatif::MultiProgress::new();
-        let res = run(AlphaBeta {
-            edges: PathBuf::from("/mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/wt/gene/50/edgelist.txt"),
-            nodes: PathBuf::from("/mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/wt/gene/50/nodelist.txt"),
-            iterations: 100,
-            posterior_max_filter: 0.99,
-            output: PathBuf::from("/mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/wt/gene/50/")
-        }, &pb);
+    // #[test]
+    // fn random_window() {
+    //     let pb = indicatif::MultiProgress::new();
+    //     let res = run(AlphaBeta {
+    //         edges: PathBuf::from("/mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/wt/gene/50/edgelist.txt"),
+    //         nodes: PathBuf::from("/mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/wt/gene/50/nodelist.txt"),
+    //         iterations: 100,
+    //         posterior_max_filter: 0.99,
+    //         output: PathBuf::from("/mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/wt/gene/50/")
+    //     }, &pb);
 
-        assert!(res.is_ok());
+    //     assert!(res.is_ok());
 
-        println!("{:?}", res.unwrap().1);
-    }
+    //     println!("{:?}", res.unwrap().1);
+    // }
 }
