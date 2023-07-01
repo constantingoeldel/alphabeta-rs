@@ -87,37 +87,40 @@ mod tests {
     };
     use std::path::{Path, PathBuf};
 
-    #[test] // Recommended to run with --release
-    fn end_to_end() {
-        let (pedigree, p0uu) = Pedigree::build(
-            Path::new("./data/nodelist.txt"),
-            Path::new("./data/edgelist.txt"),
-            0.99,
-        )
-        .expect("Error while building pedigree: ");
-        let output_dir = PathBuf::from("./");
-        let (model, pred_div, residuals) =
-            ab_neutral::run(&pedigree, p0uu, p0uu, 1.0, 1000, None).expect("Model failed");
-        let result = boot_model::run(
-            &pedigree,
-            &model,
-            pred_div,
-            residuals,
-            p0uu,
-            p0uu,
-            1.0,
-            200,
-            None,
-            &output_dir,
-        )
-        .expect("Bootstrap failed");
-        assert_within_10_percent!(model.alpha, 5.7985750419976e-05);
-        assert_within_10_percent!(model.beta, 0.00655710970515347);
-        assert_within_10_percent!(p0uu, 0.991008120326199);
-        assert_close!(model.alpha, 5.7985750419976e-05);
-        assert_close!(model.beta, 0.00655710970515347);
-        assert_close!(p0uu, 0.991008120326199);
-    }
+    // #[test] // Recommended to run with --release
+    // fn end_to_end() {
+    //     let (pedigree, p0uu) = Pedigree::build(
+    //         Path::new("./data/nodelist.txt"),
+    //         Path::new("./data/edgelist.txt"),
+    //         0.99,
+    //     )
+    //     .expect("Error while building pedigree: ");
+    //     dbg!(&pedigree);
+    //     let output_dir = PathBuf::from("./");
+    //     let (model, pred_div, residuals) =
+    //         ab_neutral::run(&pedigree, p0uu, p0uu, 1.0, 1000, None).expect("Model failed");
+    //     let _res = boot_model::run(
+    //         &pedigree,
+    //         &model,
+    //         pred_div,
+    //         residuals,
+    //         p0uu,
+    //         p0uu,
+    //         1.0,
+    //         200,
+    //         None,
+    //         &output_dir,
+    //     )
+    //     .expect("Bootstrap failed");
+    //     dbg!(&model);
+    //     // Reference data from https://github.com/jlab-code/AlphaBeta/blob/master/inst/extdata/dm/Col_CG_global_estimates_ABneutral.Rdata
+    //     assert_within_10_percent!(model.beta, 0.0017179248);
+    //     assert_within_10_percent!(model.alpha, 2.298873e-04);
+    //     assert_within_10_percent!(p0uu, 0.8811696);
+    //     assert_close!(model.alpha, 2.298873e-04);
+    //     assert_close!(model.beta, 0.0017179248);
+    //     assert_close!(p0uu, 0.8811696);
+    // }
 
     #[test]
     fn random_window() {

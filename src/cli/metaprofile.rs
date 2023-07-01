@@ -3,7 +3,7 @@ use alphabeta::{
     genes::Region, plot, progress,
 };
 use clap::Parser;
-use ndarray::{Array, Array3, Axis};
+use ndarray::{Array, Axis};
 use ndarray_npy::write_npy;
 use std::fs;
 
