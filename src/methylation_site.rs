@@ -598,7 +598,6 @@ mod tests {
     #[test]
     fn test_place_site_absolute() {
         let args = Args {
-            db: false,
             invert: false,
             absolute: true,
             cutoff: 1000,

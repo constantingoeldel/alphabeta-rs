@@ -42,10 +42,6 @@ pub struct Windows {
     #[arg(short, long, default_value_t = false)]
     pub invert: bool,
 
-    /// Use a Postgres database to do everything
-    #[arg(long, default_value_t = true)]
-    pub db: bool,
-
     /// Name of the run to be used when storing the result in Postgres
     #[arg(long, default_value_t = format!("Anonymous Run {}", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()))]
     pub name: String,
@@ -77,7 +73,6 @@ pub enum Subcommands {
 impl Default for Windows {
     fn default() -> Self {
         Windows {
-            db: false,
             invert: false,
             absolute: false,
             cutoff: 2048,
@@ -90,9 +85,6 @@ impl Default for Windows {
                 PathBuf::from("."),
                 100,
             ))),
-            // edges: None,
-            // nodes: None,
-            // alphabeta: false,
             name: String::new(),
             force: false,
             cutoff_gene_length: false,
