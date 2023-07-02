@@ -4,10 +4,10 @@ cargo run --release --bin metaprofile -- \
 -g ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
 -o /mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/wt_ci \
 --name wildtype \
--s 1 -w 5 
+-s 1 -w 5 \
 alphabeta \
 -n ../methylome/nodelist.txt \
--e ../methylome/edgelist.txt \
+-e ../methylome/edgelist.txt 
 
 # # # WT
 # # cargo run --release --bin metaprofile -- \
@@ -15,10 +15,10 @@ alphabeta \
 # # -g ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
 # # -o ../windows/testing \
 # # --name wildtype \
-# # -s 1 -w 5 
+# # -s 1 -w 5 \
 # # alphabeta \
 # # -e ../methylome/edgelist.txt \
-# # -n ../methylome/nodelist.txt \
+# # -n ../methylome/nodelist.txt 
 
 
 
@@ -28,21 +28,21 @@ cargo run --release --bin metaprofile -- \
 -g ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
 -o /mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/cmt3_ci \
 --name cmt3 \
--s 1 -w 5 
+-s 1 -w 5 \
 alphabeta \
 -e /home/constantin/methylome/cmt3_edgelist.txt \
--n /home/constantin/methylome/cmt3_nodelist.txt \
+-n /home/constantin/methylome/cmt3_nodelist.txt 
 
-suv 4/5/6
+# suv 4/5/6
 cargo run --release --bin metaprofile -- \
 -m /mnt/nas/zhilin/others/constantin-sergio/SUV456/total_original_methylome \
 -g ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
 -o /mnt/extStorage/workingDir/constantin_not_owned_by_postgres/windows/suv_ci \
 --name suv \
--s 1 -w 5 
+-s 1 -w 5 \
 alphabeta \ 
 -e /mnt/nas/zhilin/others/constantin-sergio/SUV456/SUV456_edgelist.txt \
--n /mnt/nas/zhilin/others/constantin-sergio/SUV456/SUV456_nodelist.txt \
+-n /mnt/nas/zhilin/others/constantin-sergio/SUV456/SUV456_nodelist.txt 
 
 # ros 
 #cargo run --release -- \
