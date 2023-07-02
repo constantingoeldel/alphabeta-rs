@@ -4,6 +4,10 @@ This repostiory contains a fast implementation of the AlphaBeta algorithm first 
 
 Additionally, this repository also contains a program for creating metaprofiles of (epi)genetic data. They are connected, so output from the metaprofile program can automcatically be fed into AlphaBeta.
 
+## In Action
+
+[![asciicast](https://asciinema.org/a/2BZU4MTv8wu6mv7pyy8y4dmoe.svg)](https://asciinema.org/a/2BZU4MTv8wu6mv7pyy8y4dmoe)
+
 ## How to use
 
 You'll need to install [Rust](https://www.rust-lang.org/tools/install), the programming language used for this project. Then enter the following commands into your terminal:
