@@ -12,7 +12,8 @@ use crate::{
     structs::{Model, PredictedDivergence, Problem, Progress, Residuals},
     *,
 };
-
+// The number of arguments is not ideal but it is just a complex function
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     pedigree: &Pedigree,
     params: &Model,

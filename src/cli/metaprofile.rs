@@ -1,6 +1,10 @@
 use alphabeta::{
-    alphabeta::steady_state, analysis::Analysis, arguments::Windows as Args, extract::extract,
-    genes::Region, plot, progress,
+    alphabeta::steady_state,
+    analysis::Analysis,
+    arguments::{Subcommands, Windows as Args},
+    extract::extract,
+    genes::Region,
+    plot, progress,
 };
 use clap::Parser;
 use ndarray::{Array, Axis};
@@ -8,17 +12,21 @@ use ndarray_npy::write_npy;
 use std::fs;
 
 fn main() {
-    let args = Args::parse();
+    let mut args = Args::parse();
     println!("Starting run {}", args.name);
+
+    if args.window_step == 0 {
+        args.window_step = args.window_size;
+    }
 
     let result = extract(args.clone());
 
-    match (result, args.alphabeta) {
+    match (result, &args.command) {
         (Err(e), _) => println!("Error: {e}"),
-        (Ok(_), false) => println!("Done"),
-        (Ok((max_gene_length, distribution)), true) => {
+        (Ok((max_gene_length, distribution)), Some(Subcommands::AlphaBeta(_))) => {
             alphabeta_multiple(args, max_gene_length, distribution)
         }
+        _ => println!("Done"),
     }
 }
 

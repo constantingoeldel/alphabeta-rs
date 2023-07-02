@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::*;
+use crate::{arguments::Subcommands, *};
 
 pub fn setup_output_dir(args: arguments::Windows, max_gene_length: u32) -> Result<()> {
     fs::read_dir(&args.output_dir).or(Err(Error::File(args.output_dir.clone())))?; // Throw error if base output dir does not exist
@@ -32,17 +32,10 @@ pub fn setup_output_dir(args: arguments::Windows, max_gene_length: u32) -> Resul
             };
         }
     }
-
-    if args.alphabeta {
+    if let Some(Subcommands::AlphaBeta(ab_args)) = args.command {
         // If alphabeta is set, a nodelist and edgelist are required, this is checked for in lib.rs
-        let edgelist = fs::read_to_string(
-            args.edges
-                .expect("Edgelist must be provided when alphabeta runs"),
-        )?;
-        let nodes = fs::read_to_string(
-            args.nodes
-                .expect("Nodelist must be provided when alphabeta runs"),
-        )?;
+        let edgelist = fs::read_to_string(ab_args.edges)?;
+        let nodes = fs::read_to_string(ab_args.nodes)?;
 
         for side in sides {
             let max = if args.absolute { side.1 } else { 100 };

@@ -39,7 +39,6 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 cargo install alphabeta
 ```
 
-
 <details>
 <summary>I get an error!</summary>
 
@@ -65,49 +64,22 @@ cargo install alphabeta
 
 ### Alphabeta
 
-```bash
-Usage: alphabeta [OPTIONS] --edges <EDGES> --nodes <NODES> --output <OUTPUT>
+I tried to make this as easy to use as possible, so every parameter as a (hopefully) sensible default. You can see all the options by running `alphabeta --help`:
 
-Options:
-  -i, --iterations <ITERATIONS>
-          Number of iterations to run for Nelder-Mead optimization, even 100 is enough [default: 1000]
-  -e, --edges <EDGES>
-          Relative or absolute path to an edgelist, see /data for an example
-  -n, --nodes <NODES>
-          Relative or absolute path to a nodelist, see /data for an example
-  -p, --posterior-max-filter <POSTERIOR_MAX_FILTER>
-          Minimum posterior probability for a singe basepair read to be included in the estimation [default: 0.99]
-  -o, --output <OUTPUT>
-          Relative or absolute path to an output directory, must exist, EXISTING FILES WILL BE OVERWRITTEN
-  -h, --help
-          Print help
-  -V, --version
-          Print version
-```
+![AlphaBeta ClI options](alphabeta_cli.png)
+
+When you are in a directory with a `nodelist.txt` and `edgelist.txt` file, you can just run `alphabeta` and it will use default values for everything. If you want to use a different directory, you can supply the `--nodes` and `--edges` as well as the `--output` parameters manually.
 
 ### Metaprofile
 
-```bash
-Usage: metaprofile [OPTIONS] --methylome <METHYLOME> --genome <GENOME> --output-dir <OUTPUT_DIR>
+When using the metaprofile, you will need to supply a methylome directory, a genome annotation file, all other parameters have defaults which you can of course overwrite. You can see all the options by running `metaprofile --help`:
 
-Options:
-  -m, --methylome <METHYLOME>      Path of directory containing the methlyome files from which to extract the CG-sites
-  -g, --genome <GENOME>            Path of the annotation file containing information about beginning and end of gbM-genes
-  -w, --window-size <WINDOW_SIZE>  Size of the window in percent of the gbM-gene length or in basepair number if --absolute is supplied [default: 5]
-  -s, --window-step <WINDOW_STEP>  Size of the step between the start of each window. Default value is window-size, so no overlapp happens [default: 0]
-  -o, --output-dir <OUTPUT_DIR>    Path of the directory where extracted segments shall be stored
-  -a, --absolute                   Use absolute length in base-pairs for window size instead of percentage of gene length
-  -c, --cutoff <CUTOFF>            Number of basepairs to include upstream and downstream of gene [default: 2048]
-  -i, --invert                     Invert strands, to switch from 5' to 3' and vice versa
-      --db                         Use a Postgres database to do everything
-  -e, --edges <EDGES>              Provide an edgefile
-  -n, --nodes <NODES>              Provide a nodefile - paths will be updated to match the output directory
-      --alphabeta                  Also run AlphaBeta on every window after extraction, results will be stored in the same directory as the segments
-      --name <NAME>                Name of the run to be used when storing the result in Postgres [default: "Anonymous Run 1684308724"]
-  -f, --force                      Overwrite existing content in output directory? If false (default) it will reuse existing windows
-      --cutoff-gene-length         Let the cutoff be the gene length instead of a fixed number. So if the gene is 1000 bp long, the cutoff will be 1000 bp instead of 2048 bp (the default). This option takes preference over the cutoff option
-  -h, --help                       Print help
-  -V, --version                    Print version
+![Methylome CLI parameters](methylome_cli.png)
+
+If you want to run AlphaBeta on the metaprofile output, use the `alphabeta` subcommand, which takes the AlphaBeta parameters from above. Note that `alphabeta` must come after the metaprofile options. The full order is: `metaprofile [metaprofile options] alphabeta [alphabeta options]`. The minimum command is therefore:
+
+```bash
+metaprofile --methylome [methylome directory] --genome [genome annotation file] alphabeta
 ```
 
 About window step and size:
@@ -134,9 +106,9 @@ metaprofile \
 --methylome ../methylome/within_gbM_genes/ \
 --genome ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
 --output-dir /mnt/extStorage/workingDir/./windows/wt \
---edges ../methylome/edgelist.txt \
---nodes ../methylome/nodelist.txt \
---alphabeta \
 --name wildtype \
---window-step 1 --window-size 5
+--window-step 1 --window-size 5 \
+alphabeta
+--edges ../methylome/edgelist.txt \
+--nodes ../methylome/nodelist.txt
 ```

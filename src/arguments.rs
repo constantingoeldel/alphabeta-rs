@@ -1,4 +1,4 @@
-use clap::{command, Parser};
+use clap::{command, Parser, Subcommand};
 use std::path::PathBuf;
 use std::time::SystemTime;
 
@@ -24,7 +24,7 @@ pub struct Windows {
     pub window_step: u32,
 
     /// Path of the directory where extracted segments shall be stored
-    #[arg(short, long)]
+    #[arg(short, long, default_value_os_t = PathBuf::from("."), value_parser = validate_default_output_dir)]
     pub output_dir: PathBuf,
 
     /// Use absolute length in base-pairs for window size instead of percentage of gene length
@@ -38,22 +38,6 @@ pub struct Windows {
     /// Invert strands, to switch from 5' to 3' and vice versa
     #[arg(short, long, default_value_t = false)]
     pub invert: bool,
-
-    /// Use a Postgres database to do everything
-    #[arg(long, default_value_t = true)]
-    pub db: bool,
-
-    /// Provide an edgefile
-    #[arg(long, short)]
-    pub edges: Option<std::path::PathBuf>,
-
-    /// Provide a nodefile - paths will be updated to match the output directory
-    #[arg(long, short)]
-    pub nodes: Option<std::path::PathBuf>,
-
-    /// Also run AlphaBeta on every window after extraction, results will be stored in the same directory as the segments
-    #[arg(long, default_value_t = false)]
-    pub alphabeta: bool,
 
     /// Name of the run to be used when storing the result in Postgres
     #[arg(long, default_value_t = format!("Anonymous Run {}", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()))]
@@ -72,12 +56,20 @@ pub struct Windows {
     /// Default is 100, you can probably get away with 10
     #[arg(long, default_value_t = 100)]
     pub iterations: usize,
+
+    #[command(subcommand)]
+    pub command: Option<Subcommands>,
 }
 
+#[derive(Subcommand, Debug, Clone)]
+#[clap(rename_all = "lower")]
+pub enum Subcommands {
+    /// Enable AlphaBeta estimation on the extracted windows
+    AlphaBeta(AlphaBeta),
+}
 impl Default for Windows {
     fn default() -> Self {
         Windows {
-            db: false,
             invert: false,
             absolute: false,
             cutoff: 2048,
@@ -86,9 +78,10 @@ impl Default for Windows {
             output_dir: PathBuf::from("./"),
             window_size: 5,
             window_step: 1,
-            edges: None,
-            nodes: None,
-            alphabeta: false,
+            command: Some(Subcommands::AlphaBeta(AlphaBeta::default(
+                PathBuf::from("."),
+                100,
+            ))),
             name: String::new(),
             force: false,
             cutoff_gene_length: false,
@@ -106,18 +99,44 @@ pub struct AlphaBeta {
     pub iterations: usize,
 
     /// Relative or absolute path to an edgelist, see /data for an example
-    #[arg(long, short)]
+    #[arg(long, short, default_value_os_t = PathBuf::from("./edgelist.txt"), value_parser = validate_default_file_existence)]
     pub edges: std::path::PathBuf,
 
     /// Relative or absolute path to a nodelist, see /data for an example
-    #[arg(long, short)]
+    #[arg(long, short, default_value_os_t = PathBuf::from("./nodelist.txt"), value_parser = validate_default_file_existence)]
     pub nodes: std::path::PathBuf,
     /// Minimum posterior probability for a singe basepair read to be included in the estimation
     #[arg(long, short, default_value_t = 0.99)]
     pub posterior_max_filter: f64,
     /// Relative or absolute path to an output directory, must exist, EXISTING FILES WILL BE OVERWRITTEN
-    #[arg(long, short)]
+    #[arg(long, short, default_value_os_t = PathBuf::from("."), value_parser = validate_default_output_dir)]
     pub output: std::path::PathBuf,
+}
+
+fn validate_default_output_dir(s: &str) -> Result<PathBuf, String> {
+    if PathBuf::from(s).exists() {
+        println!(
+            "Using default output directory: {}",
+            // Display full path
+            PathBuf::from(s).canonicalize().unwrap().display()
+        );
+        Ok(PathBuf::from(s))
+    } else {
+        Err(format!(
+            "Please provide a valid output directory. By default, we fill try {s}, which does not exist."
+        ))
+    }
+}
+
+fn validate_default_file_existence(s: &str) -> Result<PathBuf, String> {
+    if PathBuf::from(s).exists() {
+        println!("Using default file: {}", PathBuf::from(s).display());
+        Ok(PathBuf::from(s))
+    } else {
+        Err(format!(
+            "Please provide a valid file path. By default, we fill try {s}, which does not exist."
+        ))
+    }
 }
 
 impl AlphaBeta {

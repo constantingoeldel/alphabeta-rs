@@ -31,7 +31,7 @@ pub fn load_methylome(methylome: &PathBuf) -> Result<Vec<PathBuf>> {
         }) // Filter out tsv and fn files, which are often nodelist/edgelist files.
         .collect();
     if methylome_files.is_empty() {
-        bail!(Error::Simple("Could not find any files in the methylome directory. Please check your input. Files with .tsv or .fn extensions are ignored."))
+        bail!("Could not find any files in the methylome directory. Please check your input. Files with .tsv or .fn extensions are ignored.")
     } else {
         Ok(methylome_files)
     }
