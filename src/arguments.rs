@@ -1,9 +1,6 @@
-use clap::{command, Args, Parser, Subcommand};
-use plotters::prelude::Path;
+use clap::{command, Parser, Subcommand};
 use std::path::PathBuf;
 use std::time::SystemTime;
-
-use crate::print_dev;
 
 /// simple tool to separate a methylome by position within a gene
 #[derive(Parser, Debug, Clone)]
