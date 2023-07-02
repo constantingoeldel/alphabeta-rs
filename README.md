@@ -106,9 +106,9 @@ metaprofile \
 --methylome ../methylome/within_gbM_genes/ \
 --genome ../methylome/gbM_gene_anotation_extract_Arabidopsis.bed \
 --output-dir /mnt/extStorage/workingDir/./windows/wt \
---edges ../methylome/edgelist.txt \
---nodes ../methylome/nodelist.txt \
---alphabeta \
 --name wildtype \
---window-step 1 --window-size 5
+--window-step 1 --window-size 5 \
+alphabeta
+--edges ../methylome/edgelist.txt \
+--nodes ../methylome/nodelist.txt
 ```
