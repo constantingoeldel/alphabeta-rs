@@ -4,13 +4,13 @@ use ndarray::array;
 
 use ndarray::Array2;
 
-use crate::alphabeta::steady_state;
+use crate::alphabeta::p_uu_est;
 use crate::pedigree::Pedigree;
 
 #[derive(Debug)]
 pub struct Divergence {
     pub dt1t2: Vec<f64>,
-    pub puuinf_est: f64,
+    pub p_uu: f64,
 }
 // https://numpy.org/doc/stable/reference/generated/numpy.linalg.matrix_power.html
 pub fn matrix_power(matrix: &Array2<f64>, power: i8) -> Array2<f64> {
@@ -89,8 +89,8 @@ pub fn divergence(
         dt1t2.push(svt0[0] * (dt1t2_uu) + svt0[1] * (dt1t2_um) + svt0[2] * (dt1t2_mm));
     }
     // Pr(UU) at equilibrium given alpha and beta
-    let puuinf_est = steady_state(alpha, beta);
-    Divergence { dt1t2, puuinf_est }
+    let p_uu = p_uu_est(alpha, beta);
+    Divergence { dt1t2, p_uu }
 }
 
 pub fn genmatrix(alpha: f64, beta: f64) -> Array2<f64> {

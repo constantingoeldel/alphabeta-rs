@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use crate::{genes::Genome, Error};
 use arguments::Windows as Args;
 use itertools::Itertools;
 
@@ -12,7 +13,7 @@ macro_rules! print_dev {
 }
 
 use crate::{
-    genes::{Gene, GenesByStrand, Region, Strand},
+    genes::{Gene, Region, Strand},
     windows::Windows,
     *,
 };
@@ -29,7 +30,7 @@ use crate::{
 ///
 #[derive(Clone, PartialEq, Debug)]
 pub struct MethylationSite {
-    pub chromosome: u8,
+    pub chromosome: Chromosome,
     pub start: u32,
     pub end: u32,
     pub strand: Strand,
@@ -43,10 +44,33 @@ pub struct MethylationSite {
     pub context_trinucleotide: String,
 }
 
+// TODO: Is there a better name for the regular chromosomes than "Numbered"?
+#[derive(Clone, PartialEq, Debug, Eq, Hash)]
+pub enum Chromosome {
+    Numbered(u8),
+    Mitochondrial,
+    Chloroplast,
+}
+
+impl TryFrom<&str> for Chromosome {
+    type Error = Error;
+    fn try_from(s: &str) -> Result<Self, Error> {
+        let s = s.trim_start_matches("chr");
+        match s {
+            "M" => Ok(Chromosome::Mitochondrial),
+            "C" => Ok(Chromosome::Chloroplast),
+            _ => match s.parse::<u8>() {
+                Ok(n) => Ok(Chromosome::Numbered(n)),
+                Err(_) => Err(Error::Chromosome(s.to_string())),
+            },
+        }
+    }
+}
+
 impl Default for MethylationSite {
     fn default() -> Self {
         MethylationSite {
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 1,
             end: 2,
             strand: Strand::Unknown,
@@ -117,6 +141,8 @@ impl MethylationSite {
     ///
     /// One pitfall of this implementation is the `collect tuple` call, which only yields a `Some` value if the line has exactly 9 or 10 tab-separated fields.
     /// Some files provide the trinucleotide, others don't, so there are two versions.
+    ///
+    /// If you need to parse a different format, simply add a new function and submit a pull request.
     pub fn from_methylome_file_line(s: &str, invert_strand: bool) -> Option<Self> {
         let first_format = |s: &str| {
             s.split('\t')
@@ -135,7 +161,7 @@ impl MethylationSite {
                         meth_lvl,
                     )| {
                         Ok(MethylationSite {
-                            chromosome: chromosome.parse::<u8>()?,
+                            chromosome: chromosome.try_into()?,
                             start: location.parse::<u32>()?,
                             end: location.parse::<u32>()? + 1,
                             strand: if (strand == "+") ^ invert_strand {
@@ -179,7 +205,7 @@ impl MethylationSite {
                         trinucleotide,
                     )| {
                         Ok(MethylationSite {
-                            chromosome: chromosome.parse::<u8>()?,
+                            chromosome: chromosome.try_into()?,
                             start: location.parse::<u32>()?,
                             end: location.parse::<u32>()? + 1,
                             strand: if (strand == "+") ^ invert_strand {
@@ -224,7 +250,7 @@ impl MethylationSite {
                         meth_lvl,
                     )| {
                         Ok(MethylationSite {
-                            chromosome: chromosome.parse()?,
+                            chromosome: chromosome.try_into()?,
                             start: first_nucleotide.parse::<u32>()?,
                             end: second_nucleotide.parse::<u32>()?,
                             strand: if (strand == "+") ^ invert_strand {
@@ -257,7 +283,7 @@ impl MethylationSite {
                 .collect_tuple()
                 .map(|(chromosome, start, end, state)| {
                     Ok(MethylationSite {
-                        chromosome: chromosome.parse()?,
+                        chromosome: chromosome.try_into()?,
                         strand: Strand::Unknown,
                         start: start.parse::<u32>()?,
                         end: end.parse::<u32>()?,
@@ -281,12 +307,7 @@ impl MethylationSite {
                 .collect_tuple()
                 .map(|(chromosome, start, end, _length)| {
                     Ok(MethylationSite {
-                        chromosome: chromosome
-                            .chars()
-                            .nth(3)
-                            .ok_or(Error::Simple("Not enough chars in chromosome str"))?
-                            .to_string()
-                            .parse()?,
+                        chromosome: chromosome.try_into()?,
                         strand: Strand::Unknown,
                         start: start.parse::<u32>()?,
                         end: end.parse::<u32>()?,
@@ -306,13 +327,12 @@ impl MethylationSite {
         // Requested by Patrick Wolf
         // chr | start | end | score | _ | _
         let heterogenity_score_files = |s: &str| {
-            dbg!(s);
             s.split(['\t', ' '])
                 .collect_tuple()
                 .map(|(chromosome, start, end, _score)| {
                     dbg!(chromosome, start, end);
                     Ok(MethylationSite {
-                        chromosome: chromosome.parse()?,
+                        chromosome: chromosome.try_into()?,
                         start: start.parse()?,
                         end: end.parse()?,
                         ..Default::default()
@@ -331,7 +351,11 @@ impl MethylationSite {
         match results {
             Ok(methylation_site) => Some(methylation_site),
             Err(e) => {
-                print_dev!("Non-fatal error when parsing methylation site: {e}\nLine: {s}");
+                // Log lines that could not be parsed
+                // Ignore header
+                if !s.contains("seqnames") {
+                    print_dev!("Non-fatal error when parsing methylation site: {e}\nLine: {s}");
+                }
                 None
             }
         }
@@ -358,16 +382,10 @@ impl MethylationSite {
     ///
     /// The lifetime of the genome is longer than the lifetime of the CG site.
     /// GG sites exist only while a single methylation file is being processed but the genome is loaded once and exists for the entire program
-    pub fn find_gene<'long>(
-        &self,
-        genome: &'long [GenesByStrand],
-        args: &Args,
-    ) -> Option<&'long Gene> {
-        if self.chromosome > genome.len() as u8 {
-            return None;
-        }
+    pub fn find_gene<'long>(&self, genome: &'long Genome, args: &Args) -> Option<&'long Gene> {
+        // This can fail sensibly if there are chromosomes in the methylome files that are not in the annotation files
+        let chromosome = genome.get(&self.chromosome)?;
 
-        let chromosome = &genome[(self.chromosome - 1) as usize];
         let strand: &Vec<Gene> = match self.strand {
             Strand::Sense => &chromosome.sense, // This is a performance hit. Is there a better way to do this?
             Strand::Antisense => &chromosome.antisense,
@@ -491,6 +509,7 @@ mod tests {
     use crate::{
         arguments::Windows as Args,
         genes::{Gene, Strand},
+        methylation_site::Chromosome,
         windows::Windows,
     };
 
@@ -498,14 +517,14 @@ mod tests {
     fn test_instantiate_from_methylome_file_line() {
         let line = "1	23151	+	CG	0	8	0.9999	U	0.0025";
         let cg = MethylationSite::from_methylome_file_line(line, false).unwrap();
-        assert_eq!(cg.chromosome, 1);
+        assert_eq!(cg.chromosome, Chromosome::Numbered(1));
     }
 
     #[test]
     fn test_bigwig_format() {
         let line = "chr1	7	11	3";
         let cg = MethylationSite::from_methylome_file_line(line, true).unwrap();
-        assert_eq!(cg.chromosome, 1);
+        assert_eq!(cg.chromosome, Chromosome::Numbered(1));
         assert_eq!(cg.start, 7);
         assert_eq!(cg.end, 11);
     }
@@ -515,6 +534,13 @@ mod tests {
         let line = "1	23151	+	CG	0	8	0.9999	";
         let cg = MethylationSite::from_methylome_file_line(line, false);
         assert!(cg.is_none());
+    }
+
+    #[test]
+    fn test_cmt3_line_not_cg() {
+        let line = "1	25600	+	CHH	0	94	0.9999	U	0.0043	CAT";
+        let site = MethylationSite::from_methylome_file_line(line, false);
+        assert!(site.is_none());
     }
 
     #[test]
@@ -536,6 +562,37 @@ mod tests {
     }
 
     #[test]
+    fn test_r_example_methylome_data() {
+        let file = read_to_string("data/methylome/G0.txt").unwrap();
+        let sites: Vec<_> = file
+            .split('\n')
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .collect();
+        assert_eq!(sites.len(), 500); // Only 500 of the > 2800 sites are CG sites
+
+        let file = read_to_string("data/methylome/G1_2.txt").unwrap();
+        let sites: Vec<MethylationSite> = file
+            .split('\n')
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .collect();
+        assert_eq!(sites.len(), 500);
+
+        let file = read_to_string("data/methylome/G4_2.txt").unwrap();
+        let sites: Vec<MethylationSite> = file
+            .split('\n')
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .collect();
+        assert_eq!(sites.len(), 500);
+
+        let file = read_to_string("data/methylome/G4_8.txt").unwrap();
+        let sites: Vec<MethylationSite> = file
+            .split('\n')
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .collect();
+        assert_eq!(sites.len(), 500);
+    }
+
+    #[test]
     fn test_extract_gene() {}
 
     #[test]
@@ -552,7 +609,7 @@ mod tests {
         let all_within_gene = Gene {
             annotation: String::new(),
 
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 1000,
             end: 2000,
             strand: Strand::Sense,
@@ -560,7 +617,7 @@ mod tests {
         };
         let all_upstream_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 2000,
             end: 3000,
             strand: Strand::Sense,
@@ -568,7 +625,7 @@ mod tests {
         };
         let all_downstream_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 0,
             end: 1000,
             strand: Strand::Sense,
@@ -614,7 +671,7 @@ mod tests {
         };
         let all_within_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 100,
             end: 200,
             strand: Strand::Sense,
@@ -622,7 +679,7 @@ mod tests {
         };
         let all_upstream_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 200,
             end: 300,
             strand: Strand::Sense,
@@ -630,7 +687,7 @@ mod tests {
         };
         let all_downstream_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 0,
             end: 100,
             strand: Strand::Sense,
@@ -666,7 +723,7 @@ mod tests {
         };
         let all_within_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 1000,
             end: 2000,
             strand: Strand::Sense,
@@ -674,7 +731,7 @@ mod tests {
         };
         let all_upstream_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 2000,
             end: 3000,
             strand: Strand::Sense,
@@ -682,7 +739,7 @@ mod tests {
         };
         let all_downstream_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 0,
             end: 1000,
             strand: Strand::Sense,
@@ -721,7 +778,7 @@ mod tests {
 
         let gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 100,
             end: 200,
             strand: Strand::Sense,
@@ -772,7 +829,7 @@ mod tests {
 
         let gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 100,
             end: 200,
             strand: Strand::Sense,
@@ -822,7 +879,7 @@ mod tests {
         };
         let all_within_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 1000,
             end: 2000,
             strand: Strand::Antisense,
@@ -830,7 +887,7 @@ mod tests {
         };
         let all_upstream_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 2000,
             end: 3000,
             strand: Strand::Antisense,
@@ -838,7 +895,7 @@ mod tests {
         };
         let all_downstream_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 0,
             end: 1000,
             strand: Strand::Antisense,
@@ -879,7 +936,7 @@ mod tests {
         };
         let all_within_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 1000,
             end: 2000,
             strand: Strand::Sense,
@@ -887,7 +944,7 @@ mod tests {
         };
         let all_upstream_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 2000,
             end: 3000,
             strand: Strand::Sense,
@@ -895,7 +952,7 @@ mod tests {
         };
         let all_downstream_gene = Gene {
             annotation: String::new(),
-            chromosome: 1,
+            chromosome: Chromosome::Numbered(1),
             start: 0,
             end: 1000,
             strand: Strand::Sense,

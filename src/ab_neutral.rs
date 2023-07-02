@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use crate::{
     divergence::divergence,
     pedigree::Pedigree,
-    structs::{Model, Problem, Progress},
+    structs::{Model, PredictedDivergence, Problem, Progress, Residuals},
     *,
 };
 use argmin::{core::Executor, solver::neldermead::NelderMead};
@@ -15,10 +15,11 @@ pub fn run(
     p0uu: f64,
     eqp: f64,
     eqp_weight: f64,
-    n_starts: u64,
-    pb: Option<ProgressBar>,
-) -> Result<Model, Box<dyn std::error::Error>> {
-    let pb = pb.unwrap_or_else(move || Progress::new("ABneutral", n_starts).0);
+    n_starts: usize,
+    pb: Option<&ProgressBar>,
+) -> Result<(Model, PredictedDivergence, Residuals), Box<dyn std::error::Error>> {
+    let alternative_pb = Progress::new("ABneutral", n_starts).0;
+    let pb = pb.unwrap_or(&alternative_pb);
     let p0mm = 1.0 - p0uu;
     let p0um = 0.0;
     let max_divergence = *pedigree
@@ -127,17 +128,17 @@ pub fn run(
         );
     }
 
-    let mut residual = Vec::new();
+    let mut residuals = Vec::new();
 
     for (i, row) in pedigree.rows().into_iter().enumerate() {
-        residual.push(row[3] - predicted_divergence[i]);
+        residuals.push(row[3] - predicted_divergence[i]);
     }
 
     // Generating theoretical fit
 
     // Not needed for now
 
-    Ok(best.to_owned())
+    Ok((best.to_owned(), predicted_divergence, residuals))
 }
 
 #[cfg(test)]

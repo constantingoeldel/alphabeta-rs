@@ -1,3 +1,4 @@
+
 use std::{
     fmt::Display,
     fs::{self, File, OpenOptions},
@@ -10,7 +11,7 @@ use itertools::Itertools;
 use crate::{
     arguments::Windows as Args,
     files::lines_from_file,
-    genes::{Gene, GenesByStrand, Region},
+    genes::{Gene, Genome, Region},
     methylation_site::MethylationSite,
     *,
 };
@@ -35,7 +36,6 @@ impl Windows {
         } else {
             100 / args.window_step
         };
-        dbg!(gene_window_count, up_down_window_count);
         Windows {
             upstream: vec![Vec::new(); up_down_window_count as usize],
             gene: vec![Vec::new(); gene_window_count as usize],
@@ -272,14 +272,12 @@ impl Windows {
                     filename
                 ));
                 let mut file = OpenOptions::new()
-                    .append(true)
+                    .write(true)
                     .create(true)
-                    .open(&output_file)?;
-                let metadata = file.metadata();
-                if metadata.unwrap().len() == 0 {
-                    // On first write to file, create header line
-                    file.write_all("seqnames\tstart\tstrand\tcontext\tcounts.methylated\tcounts.total\tposteriorMax\tstatus\trc.meth.lvl\tcontext.trinucleotide\n".as_bytes())?;
-                }
+                    .open(&output_file)
+                    .unwrap();
+
+                file.write_all("seqnames\tstart\tstrand\tcontext\tcounts.methylated\tcounts.total\tposteriorMax\tstatus\trc.meth.lvl\tcontext.trinucleotide\n".as_bytes())?;
                 file.write_all(cg_sites.iter().map(|e| &e.original).join("\n").as_bytes())?;
             }
         }
@@ -288,7 +286,7 @@ impl Windows {
 
     pub fn extract(
         methylome_file: File,
-        genome: Vec<GenesByStrand>,
+        genome: Genome,
         max_gene_length: u32,
         args: Args,
         file_name: String,

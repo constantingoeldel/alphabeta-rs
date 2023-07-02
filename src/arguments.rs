@@ -5,6 +5,7 @@ use std::time::SystemTime;
 /// simple tool to separate a methylome by position within a gene
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
+#[non_exhaustive]
 pub struct Windows {
     /// Path of directory containing the methlyome files from which to extract the CG-sites
     #[arg(short, long)]
@@ -66,6 +67,11 @@ pub struct Windows {
     /// This option takes preference over the cutoff option.    
     #[arg(long, default_value_t = false)]
     pub cutoff_gene_length: bool,
+
+    /// Number of iterations to run for Nelder-Mead optimization, both in the model estimation and bootstrap phase
+    /// Default is 100, you can probably get away with 10
+    #[arg(long, default_value_t = 100)]
+    pub iterations: usize,
 }
 
 impl Default for Windows {
@@ -75,9 +81,9 @@ impl Default for Windows {
             invert: false,
             absolute: false,
             cutoff: 2048,
-            genome: PathBuf::from("default"),
-            methylome: PathBuf::from("also default"),
-            output_dir: PathBuf::from("also default"),
+            genome: PathBuf::from("./genome"),
+            methylome: PathBuf::from("./methylome"),
+            output_dir: PathBuf::from("./"),
             window_size: 5,
             window_step: 1,
             edges: None,
@@ -86,16 +92,18 @@ impl Default for Windows {
             name: String::new(),
             force: false,
             cutoff_gene_length: false,
+            iterations: 100,
         }
     }
 }
 
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
+#[non_exhaustive]
 pub struct AlphaBeta {
     /// Number of iterations to run for Nelder-Mead optimization, even 100 is enough
     #[arg(short, long, default_value_t = 1000)]
-    pub iterations: u64,
+    pub iterations: usize,
 
     /// Relative or absolute path to an edgelist, see /data for an example
     #[arg(long, short)]
@@ -113,13 +121,13 @@ pub struct AlphaBeta {
 }
 
 impl AlphaBeta {
-    pub fn default(output_dir: PathBuf) -> Self {
+    pub fn default(output_dir: PathBuf, iterations: usize) -> Self {
         Self {
             edges: output_dir.join("edgelist.txt"),
             nodes: output_dir.join("nodelist.txt"),
             output: output_dir,
             posterior_max_filter: 0.99,
-            iterations: 100,
+            iterations,
         }
     }
 }

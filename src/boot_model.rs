@@ -1,26 +1,32 @@
 use indicatif::ProgressBar;
+use rand::{distributions::Slice, thread_rng, Rng};
 use rayon::prelude::*;
-use std::sync::Mutex;
+use std::{path::Path, sync::Mutex};
 
 use argmin::{core::Executor, solver::neldermead::NelderMead};
-use ndarray::{array, Array1, Array2, Axis};
+use ndarray::{array, s, Array1, Array2, Axis};
 
 use crate::{
+    analysis::{Analysis, RawAnalysis},
     pedigree::Pedigree,
-    structs::{Model, Problem, Progress, StandardDeviations},
+    structs::{Model, PredictedDivergence, Problem, Progress, Residuals},
     *,
 };
 
 pub fn run(
     pedigree: &Pedigree,
     params: &Model,
+    pred_div: PredictedDivergence,
+    residuals: Residuals,
     p0uu: f64,
     eqp: f64,
     eqp_weight: f64,
-    n_boot: u64,
-    pb: Option<ProgressBar>,
-) -> Result<StandardDeviations, Box<dyn std::error::Error>> {
-    let pb = pb.unwrap_or_else(|| Progress::new("BootModel", n_boot).0);
+    n_boot: usize,
+    pb: Option<&ProgressBar>,
+    output_dir: &Path,
+) -> Result<(Analysis, RawAnalysis), Box<dyn std::error::Error>> {
+    let alternative_pb = Progress::new("BootModel", n_boot).0;
+    let pb = pb.unwrap_or(&alternative_pb);
 
     let p0mm = 1.0 - p0uu;
     let p0um = 0.0;
@@ -29,12 +35,28 @@ pub fn run(
 
     // Alpha, Beta, Weight, Intercept, pr_mm, pr_um, pr_uu
     let results = Mutex::new(Array2::<f64>::zeros((0, 7)));
-    // let counter = AtomicU32::new(0);
 
     // Optimization loop
     (0..n_boot).into_par_iter().for_each(|_i| {
+        // pedigree[,"div.obs"]<-pedigree[,"div.pred"]+sample(pedigree[,"residual"], nrow(pedigree), replace=TRUE)
+        let rng = thread_rng();
+        let residual_dist = Slice::new(&residuals).unwrap();
+        let residual_sample: Vec<&f64> = rng
+            .sample_iter(&residual_dist)
+            .take(pedigree.len_of(Axis(0)))
+            .collect();
+        assert!(pred_div.len() == residual_sample.len());
+        let div_ops: Vec<f64> = pred_div
+            .iter()
+            .zip(residual_sample.iter())
+            .map(|(a, b)| a + *b)
+            .collect();
+
+        let mut pedigree = pedigree.clone();
+        pedigree.slice_mut(s![.., 3]).assign(&Array1::from(div_ops));
+
         let problem = Problem {
-            pedigree: pedigree.clone(),
+            pedigree,
             eqp_weight,
             eqp,
             p_mm: p0mm,
@@ -42,8 +64,9 @@ pub fn run(
             p_uu: p0uu,
         };
         // Run Nelder-Mead optimization
+        // Use the previous result as the initial guess, supplement with random values close-by
         let nm = NelderMead::new(vec![
-            params.vary().to_vec(),
+            params.to_vec(),
             params.vary().to_vec(),
             params.vary().to_vec(),
             params.vary().to_vec(),
@@ -77,34 +100,15 @@ pub fn run(
     pb.finish();
 
     let results = results.into_inner().unwrap();
-    // Standard deviations
-    let sd_alpha = results.column(0).std(1.0);
-    let sd_beta = results.column(1).std(1.0);
-    // Alpha - Beta
-    let sd_alpha_beta = results
-        .column(1)
-        .iter()
-        .zip(results.column(0).iter())
-        .map(|(b, a)| b / a)
-        .collect::<Array1<f64>>();
 
-    let sd_weight = results.column(2).std(1.0);
-    let sd_intercept = results.column(3).std(1.0);
+    plot::bootstrap(
+        results.column(0).to_vec(),
+        results.column(1).to_vec(),
+        output_dir,
+    )?;
 
-    let sd_pr_mm_inf = results.column(4).std(1.0);
-    let sd_pr_um_inf = results.column(5).std(1.0);
-    let sd_pr_uu_inf = results.column(6).std(1.0);
+    let raw_analysis = RawAnalysis(results);
+    let analysis = raw_analysis.analyze();
 
-    // Quantiles not implemented yet
-
-    Ok(StandardDeviations {
-        alpha: sd_alpha,
-        beta: sd_beta,
-        alpha_beta: sd_alpha_beta.std(1.0),
-        weight: sd_weight,
-        intercept: sd_intercept,
-        p_mm: sd_pr_mm_inf,
-        p_um: sd_pr_um_inf,
-        p_uu: sd_pr_uu_inf,
-    })
+    Ok((analysis, raw_analysis))
 }

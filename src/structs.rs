@@ -24,23 +24,15 @@ pub struct Model {
     pub weight: f64,
     pub intercept: f64,
 }
-#[derive(Debug)]
-pub struct StandardDeviations {
-    pub alpha: f64,
-    pub beta: f64,
-    pub alpha_beta: f64,
-    pub weight: f64,
-    pub intercept: f64,
-    pub p_mm: f64,
-    pub p_um: f64,
-    pub p_uu: f64,
-}
+
+pub type PredictedDivergence = Vec<f64>;
+pub type Residuals = Vec<f64>;
 
 pub struct Progress(pub ProgressBar);
 
 impl Progress {
-    pub fn new(name: &'static str, iterations: u64) -> Self {
-        let pb = ProgressBar::new(iterations);
+    pub fn new(name: &'static str, iterations: usize) -> Self {
+        let pb = ProgressBar::new(iterations as u64);
 
         pb.set_message(name);
         pb.set_style(
@@ -66,23 +58,6 @@ impl Display for Model {
             f,
             "Model:\n\tAlpha: {}\n\tBeta: {}\n\tWeight: {}\n\tIntercept: {}",
             self.alpha, self.beta, self.weight, self.intercept
-        )
-    }
-}
-
-impl Display for StandardDeviations {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Standard Deviations:\n\tAlpha: {}\n\tBeta: {}\n\tBeta/Alpha: {}\n\tWeight: {}\n\tIntercept: {}\nPr_mm: {}\nPr_um: {}\nPr_uu: {}",
-            self.alpha,
-            self.beta,
-            self.alpha_beta,
-            self.weight,
-            self.intercept,
-            self.p_mm,
-            self.p_um,
-            self.p_uu,
         )
     }
 }
@@ -182,11 +157,12 @@ impl Model {
         (self.beta * ((1.0 - self.beta).powi(2) - (1.0 - self.alpha).powi(2) - 1.0))
             / ((self.alpha + self.beta) * ((self.alpha + self.beta - 1.0).powi(2) - 2.0))
     }
-    pub fn to_file(&self, path: &Path, errors: &StandardDeviations) -> std::io::Result<()> {
+    pub fn to_file(&self, path: &Path) -> std::io::Result<()> {
         println!("Writing model to file: {}", path.display());
         let mut file = File::create(path).unwrap();
-        let  content = format!(
-            "Alpha {}\nBeta {}\nStandard_Errors_Alpha {}\nStandard_Errors_Beta {}\nStandard_Errors_Alpha_Beta {}\n", self.alpha, self.beta, errors.alpha, errors.beta, errors.alpha_beta
+        let content = format!(
+            "Alpha {}\nBeta {}\nWeight {}\n Intercept {}\n",
+            self.alpha, self.beta, self.weight, self.intercept
         );
 
         file.write_all(content.as_bytes())
@@ -233,7 +209,7 @@ impl CostFunction for Problem {
             square_sum += (ped - p.intercept - div).powi(2)
                 + self.eqp_weight
                     * self.pedigree.nrows() as f64
-                    * (divergence.puuinf_est - self.eqp).powi(2);
+                    * (divergence.p_uu - self.eqp).powi(2);
         }
 
         Ok(square_sum)
@@ -254,8 +230,7 @@ mod test {
         let param = Model::default().to_vec().into();
         let result = C::cost(&c, &param);
         let result = result.unwrap();
-        // TODO: enable
-        // assert_eq!(result, 0.0006700888539608879);
+        assert_eq!(result, 0.0006700888539608879);
     }
 
     #[test]
