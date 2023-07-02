@@ -1,6 +1,6 @@
 use std::{fs, sync::Mutex};
 
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use indicatif::MultiProgress;
 use itertools::Itertools;
 
@@ -17,23 +17,24 @@ use rayon::prelude::*;
 pub fn extract(args: arguments::Windows) -> Result<(u32, Vec<i32>)> {
     let start = std::time::Instant::now();
     let mut args = args;
-
-    if args.alphabeta && (args.nodes.is_none() || args.edges.is_none()) {
-        panic!("You need to specify the nodes and edges file when using the alphabeta method");
-    }
+    // TODO enable
+    // if args.alphabeta && (args.nodes.is_none() || args.edges.is_none()) {
+    //     panic!("You need to specify the nodes and edges file when using the alphabeta method");
+    // }
 
     // Adj ust window_step to default value
     if args.window_step == 0 {
         args.window_step = args.window_size;
     }
-
     let methylome_files = load_methylome(&args.methylome)?;
-    let annotation_lines = lines_from_file(&args.genome)?;
+    let annotation_lines = lines_from_file(&args.genome)
+        .map_err(|e| anyhow!("Error while reading genome annotation file: {}", e))?;
     let mut genes: Vec<Gene> = Vec::new();
 
     // Parse annotation file to extract genes
     for line in annotation_lines {
-        let line = line?;
+        let line =
+            line.map_err(|e| anyhow!("Error while reading genome annotation file: {}", e))?;
         let gene = Gene::from_annotation_file_line(&line, args.invert);
         if let Some(gene) = gene {
             genes.push(gene)
@@ -41,7 +42,7 @@ pub fn extract(args: arguments::Windows) -> Result<(u32, Vec<i32>)> {
     }
 
     if genes.is_empty() {
-        bail!(Error::Simple("Could not parse a single annotation from the annotation file. Please check your input or add a parser implemenation for your data format."))
+        bail!("Could not parse a single annotation from the annotation file. Please check your input or add a parser implemenation for your data format.")
     }
 
     // Extract all the different chromosomes, which are used to construct the genome HashMap
