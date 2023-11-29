@@ -6,7 +6,7 @@ use std::time::SystemTime;
 #[derive(Parser, Debug, Clone)]
 #[command(author, version, about, long_about = None)]
 #[non_exhaustive]
-pub struct Windows {
+pub struct Metaprofile {
     /// Path of directory containing the methlyome files from which to extract the CG-sites
     #[arg(short, long)]
     pub methylome: PathBuf,
@@ -67,9 +67,9 @@ pub enum Subcommands {
     /// Enable AlphaBeta estimation on the extracted windows
     AlphaBeta(AlphaBeta),
 }
-impl Default for Windows {
+impl Default for Metaprofile {
     fn default() -> Self {
-        Windows {
+        Metaprofile {
             invert: false,
             absolute: false,
             cutoff: 2048,

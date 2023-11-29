@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{genes::Genome, Error};
-use arguments::Windows as Args;
+use arguments::Metaprofile as Args;
 use itertools::Itertools;
 
 #[macro_export]
@@ -507,7 +507,7 @@ mod tests {
 
     use super::MethylationSite;
     use crate::{
-        arguments::Windows as Args,
+        arguments::Metaprofile as Args,
         genes::{Gene, Strand},
         methylation_site::Chromosome,
         windows::Windows,

@@ -1,9 +1,9 @@
-use crate::{arguments::Windows, *, analysis::Analysis};
+use crate::{analysis::Analysis, arguments::Metaprofile, *};
 use itertools::Itertools;
 use plotters::prelude::*;
 use std::path::Path;
 
-pub fn metaplot(analyses: &[Analysis], args: &Windows) -> Result<()> {
+pub fn metaplot(analyses: &[Analysis], args: &Metaprofile) -> Result<()> {
     let output_file = args.output_dir.join("metaplot.png");
 
     let root = BitMapBackend::new(&output_file, (640 * 2, 480 * 2)).into_drawing_area();

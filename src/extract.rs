@@ -14,7 +14,7 @@ use crate::{
 };
 use rayon::prelude::*;
 
-pub fn extract(args: arguments::Windows) -> Result<(u32, Vec<i32>)> {
+pub fn extract(args: arguments::Metaprofile) -> Result<(u32, Vec<i32>)> {
     let start = std::time::Instant::now();
     let mut args = args;
     // TODO enable

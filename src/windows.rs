@@ -1,4 +1,3 @@
-
 use std::{
     fmt::Display,
     fs::{self, File, OpenOptions},
@@ -9,7 +8,7 @@ use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Itertools;
 
 use crate::{
-    arguments::Windows as Args,
+    arguments::Metaprofile as Args,
     files::lines_from_file,
     genes::{Gene, Genome, Region},
     methylation_site::MethylationSite,
@@ -326,7 +325,9 @@ impl Windows {
             pb.inc(1);
             if let Ok(line) = line_result {
                 // If cg site could not be extracted from a file line, continue with the next line. Happens on header rows, for example.
-                let Some(cg) = MethylationSite::from_methylome_file_line(&line, args.invert) else {continue;};
+                let Some(cg) = MethylationSite::from_methylome_file_line(&line, args.invert) else {
+                    continue;
+                };
 
                 if last_gene.is_none() || !cg.is_in_gene(last_gene.unwrap(), &args) {
                     last_gene = cg.find_gene(&genome, &args);
@@ -356,7 +357,7 @@ impl Display for Windows {
 #[cfg(test)]
 mod test {
 
-    use crate::arguments::Windows as Args;
+    use crate::arguments::Metaprofile as Args;
     #[test]
     fn new_absolute() {
         let args = Args {

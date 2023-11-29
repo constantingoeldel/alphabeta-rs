@@ -1,7 +1,7 @@
 use alphabeta::{
     alphabeta::steady_state,
     analysis::Analysis,
-    arguments::{Subcommands, Windows as Args},
+    arguments::{Metaprofile as Args, Subcommands},
     extract::extract,
     genes::Region,
     plot, progress,
