@@ -1,0 +1,23 @@
+[package]
+name = "methylome"
+version = "0.2.1"
+edition = "2021"
+description = "Structs and methods for working with methylation data"
+license = "GPL-3.0"
+repository = "https://github.com/constantingoeldel/alphabeta-rs"
+
+[lib]
+name = "methylome"
+path = "src/lib.rs"
+
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ndarray = { version = "0.15.0",  features = ["blas"]}
+blas-src = { version = "0.8.0",  features = ["openblas"] }
+openblas-src = { version = "0.10",  features = ["static"] }
+thiserror = "1.0.40"
+itertools = "0.10.5"
+

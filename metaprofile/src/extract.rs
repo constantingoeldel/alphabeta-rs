@@ -1,40 +1,35 @@
 use std::{fs, sync::Mutex};
 
-use anyhow::{anyhow, bail};
-use indicatif::MultiProgress;
-use itertools::Itertools;
-
 use crate::{
+    config::set,
     files::{file_name, lines_from_file, load_methylome, open_file},
-    genes::{Gene, Genome},
-    methylation_site::Chromosome,
+    genes::{Gene, Genome, Region},
     setup::setup_output_dir,
     windows::Windows,
     *,
 };
+use alphabeta::Analysis;
+use indicatif::MultiProgress;
+use itertools::Itertools;
+// use methylome::genes::{Gene, Genome};
+// use methylome::methylation_site::Chromosome;
+
+use methylome::{steady_state, Chromosome};
 use rayon::prelude::*;
 
-pub fn extract(args: arguments::Metaprofile) -> Result<(u32, Vec<i32>)> {
+pub fn extract(args: config::Metaprofile) -> Return<()> {
+    set(args.clone());
     let start = std::time::Instant::now();
-    let mut args = args;
-    // TODO enable
-    // if args.alphabeta && (args.nodes.is_none() || args.edges.is_none()) {
-    //     panic!("You need to specify the nodes and edges file when using the alphabeta method");
-    // }
 
-    // Adj ust window_step to default value
-    if args.window_step == 0 {
-        args.window_step = args.window_size;
-    }
+    let mut args = args;
+
     let methylome_files = load_methylome(&args.methylome)?;
-    let annotation_lines = lines_from_file(&args.genome)
-        .map_err(|e| anyhow!("Error while reading genome annotation file: {}", e))?;
+    let annotation_lines = lines_from_file(&args.genome)?;
     let mut genes: Vec<Gene> = Vec::new();
 
     // Parse annotation file to extract genes
     for line in annotation_lines {
-        let line =
-            line.map_err(|e| anyhow!("Error while reading genome annotation file: {}", e))?;
+        let line = line?;
         let gene = Gene::from_annotation_file_line(&line, args.invert);
         if let Some(gene) = gene {
             genes.push(gene)
@@ -42,7 +37,7 @@ pub fn extract(args: arguments::Metaprofile) -> Result<(u32, Vec<i32>)> {
     }
 
     if genes.is_empty() {
-        bail!("Could not parse a single annotation from the annotation file. Please check your input or add a parser implemenation for your data format.")
+        return Err(Error::NoGenesFound);
     }
 
     // Extract all the different chromosomes, which are used to construct the genome HashMap
@@ -73,7 +68,7 @@ pub fn extract(args: arguments::Metaprofile) -> Result<(u32, Vec<i32>)> {
 
     methylome_files
         .par_iter()
-        .try_for_each_with(genome, |genome, path| -> Result<()> {
+        .try_for_each_with(genome, |genome, path| -> Return<()> {
             let file = open_file(path)?;
             let mut windows = Windows::extract(
                 file,
@@ -98,7 +93,7 @@ pub fn extract(args: arguments::Metaprofile) -> Result<(u32, Vec<i32>)> {
             Ok(())
         })?;
 
-    // Removing the mutexes as the paralell part is over
+    // Removing the mutexes as the parallel part is over
     let steady_state_meth = steady_state_methylations.into_inner().unwrap();
     let distributions = distributions.into_inner().unwrap();
     let sample_size = steady_state_meth.len();
@@ -150,6 +145,90 @@ pub fn extract(args: arguments::Metaprofile) -> Result<(u32, Vec<i32>)> {
         ),
     )?;
 
-    println!("Done in: {:?}", start.elapsed());
-    Ok((max_gene_length, distributions[0].clone()))
+    println!("Created metaprofile in: {:?}", start.elapsed());
+
+    // If the alphabeta subcommand is set, run the alphabeta method
+    if args.command.is_some() {
+        alphabeta_multiple(args, max_gene_length, distributions[0].clone())
+    }
+
+    Ok(())
+}
+
+fn alphabeta_multiple(args: Metaprofile, max_gene_length: u32, distribution: Vec<i32>) {
+    let regions = vec![
+        (Region::Upstream, args.cutoff),
+        (Region::Gene, max_gene_length),
+        (Region::Downstream, args.cutoff),
+    ];
+    let mut results = Vec::new();
+    let total_steps = if args.absolute {
+        (max_gene_length + 2 * args.cutoff) / args.window_step
+    } else {
+        (3 * 100) / args.window_step
+    };
+
+    let (multi, pb) = progress_bars::multi(total_steps as u64);
+
+    // Create an empty 3D array to store the raw results
+    for region in regions {
+        let max = if args.absolute { region.1 } else { 100 };
+
+        for window in (0..max).step_by(args.window_step as usize) {
+            pb.inc(1);
+
+            let args = alphabeta::AlphaBeta::default(
+                args.output_dir
+                    .join(region.0.to_string())
+                    .join(window.to_string()),
+                args.iterations,
+            );
+
+            let alphabeta_result = alphabeta::run(args, &multi);
+            match alphabeta_result {
+                Err(e) => println!("Error: {e}"),
+                Ok((model, analysis, _, obs_meth_lvl)) => {
+                    results.push((model, analysis, region.0.clone(), obs_meth_lvl));
+                }
+            }
+        }
+    }
+    pb.finish();
+    let mut print = String::from("run;window;cg_count;region;alpha;beta;1/2*(alpha+beta);pred_steady_state;obs_steady_state;sd_alpha;sd_beta;ci_alpha_0.025;ci_alpha_0.975;ci_beta_0.025;ci_beta_0.975\n");
+    for (i, ((model, analysis, region, obs_meth_lvl), d)) in
+        results.iter().zip(distribution.iter()).enumerate()
+    {
+        print += &format!(
+            "{};{};{};{};{};{};{};{};{};{};{};{};{};{};{}\n",
+            args.name,
+            i,
+            d,
+            region,
+            model.alpha,
+            model.beta,
+            0.5 * (model.alpha + model.beta),
+            steady_state(model.alpha, model.beta),
+            obs_meth_lvl,
+            analysis.sd_alpha,
+            analysis.sd_beta,
+            analysis.ci_alpha.0,
+            analysis.ci_alpha.1,
+            analysis.ci_beta.0,
+            analysis.ci_beta.1
+        )
+    }
+
+    println!("{print}");
+
+    fs::write(args.output_dir.join("results.txt"), print).expect("Could not save results to file.");
+    // let db = db::connect()
+    //     .await
+    //     .expect("Could not connect to database: Did you provide a connection string?");
+    // import_results(&db, args.name, results).await.expect("Could not save results to a database. Your data is stored in files in each directory");
+    let analyses = results
+        .iter()
+        .map(|r| r.1.clone())
+        .collect::<Vec<Analysis>>();
+
+    plot::metaplot(&analyses, &args).expect("Could not plot results");
 }

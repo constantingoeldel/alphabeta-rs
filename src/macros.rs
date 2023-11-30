@@ -9,17 +9,6 @@ macro_rules! assert_close_epsilon {
         }
     };
 }
-#[macro_export]
-macro_rules! assert_close {
-    ($x:expr, $y:expr ) => {
-        if ($x - $y).abs() > 1e-4 {
-            panic!(
-                "assertion failed: `abs(left - right) < {}`, (left: `{}`, right: `{}`)",
-                1e-6, $x, $y
-            );
-        }
-    };
-}
 
 #[macro_export]
 macro_rules! assert_within_10_percent {

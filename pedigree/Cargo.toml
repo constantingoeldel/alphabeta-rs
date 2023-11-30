@@ -1,0 +1,23 @@
+[package]
+name = "pedigree"
+version = "0.1.0"
+edition = "2021"
+description = "Build a pedigree from WGS data."
+license = "GPL-3.0"
+repository = "https://github.com/constantingoeldel/alphabeta-rs"
+
+[lib]
+name = "pedigree"
+path = "src/lib.rs"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ndarray = { version = "0.15.0",  features = ["blas"]}
+blas-src = { version = "0.8.0",  features = ["openblas"] }
+openblas-src = { version = "0.10",  features = ["static"] }
+petgraph = "0.6.2"
+thiserror = "1.0.40"
+methylome ={ path = "../methylome"}
+

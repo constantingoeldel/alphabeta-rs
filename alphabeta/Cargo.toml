@@ -1,0 +1,38 @@
+[package]
+name = "alphabeta"
+version = "0.2.1"
+edition = "2021"
+description = "Tools for analysing epigenetic data."
+license = "GPL-3.0"
+repository = "https://github.com/constantingoeldel/alphabeta-rs"
+
+[lib]
+name = "alphabeta"
+path = "src/lib.rs"
+
+
+[[bin]] 
+name = "alphabeta"
+path = "src/cli.rs"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+argmin = "0.8.0"
+argmin-math = { version = "0.3", features = ["ndarray_latest-serde", "nalgebra_latest-serde"] }
+ndarray = { version = "0.15.0",  features = ["blas"]}
+blas-src = { version = "0.8.0",  features = ["openblas"] }
+openblas-src = { version = "0.10",  features = ["static"] }
+rand = "0.8.5"
+rayon = "1.6.1"
+clap = { version = "4.1.4", features = ["derive"] }
+thiserror = "1.0.40"
+itertools = "0.10.5"
+plotters = "0.3.4"
+ndarray-stats = "0.5.1"
+noisy_float = "0.2.0"
+pedigree ={ path = "../pedigree" }
+methylome ={ path = "../methylome" }
+progress_bars ={ path = "../progress_bars" }
+

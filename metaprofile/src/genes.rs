@@ -1,21 +1,11 @@
 use std::{collections::HashMap, fmt::Display, ops::Deref};
 
 use itertools::Itertools;
+use methylome::{Chromosome, MethylationSite, Strand};
 
-use crate::{
-    error::{self, Error},
-    methylation_site::Chromosome,
-    print_dev,
-};
+use crate::{Error, Return};
 
-pub type Result<T> = std::result::Result<T, error::Error>;
-
-#[derive(Clone, Debug)]
-pub enum Strand {
-    Sense,
-    Antisense,
-    Unknown,
-}
+use crate::print_dev;
 
 // TODO Can we somehow get rid of this? Cloning Genome is expensive
 // Clone is needed for try_for_each_with of the rayon lib for processing the genes
@@ -55,47 +45,6 @@ impl Genome {
         }
     }
 }
-
-impl<'a> TryFrom<&'a str> for Strand {
-    type Error = Error;
-    fn try_from(s: &str) -> Result<Self> {
-        match s {
-            "+" => Ok(Self::Sense),
-            "-" => Ok(Self::Antisense),
-            "*" => Ok(Self::Unknown),
-            _ => Err(Error::Simple("Invalid strand")),
-        }
-    }
-}
-
-impl Strand {
-    pub fn correct_format(s: &str) -> bool {
-        matches!(s, "+" | "-" | "*")
-    }
-
-    pub fn invert(self, invert: bool) -> Self {
-        if !invert {
-            return self;
-        }
-        match self {
-            Self::Sense => Self::Antisense,
-            Self::Antisense => Self::Sense,
-            Self::Unknown => Self::Unknown,
-        }
-    }
-}
-
-impl PartialEq for Strand {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Sense, Self::Antisense) => false,
-            (Self::Antisense, Self::Sense) => false,
-            _ => true, // If one of them is unknown, they are equal. WARNING: This leads to unexpected behaviour if you want to check for one specific strand! in that case use `if let Strand::X = self.strand {}
-        }
-    }
-}
-
-impl Eq for Strand {}
 
 #[derive(Debug, Clone)]
 pub enum Region {
@@ -200,7 +149,7 @@ impl Gene {
                 })
         };
 
-        let results: Option<Result<Gene>> = first_format(s).or_else(|| second_format(s)).or(None);
+        let results: Option<Return<Gene>> = first_format(s).or_else(|| second_format(s)).or(None);
 
         match results {
             Some(Ok(methylation_site)) => Some(methylation_site),
@@ -226,22 +175,68 @@ impl Display for Gene {
     }
 }
 
-impl Display for Strand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Strand::Sense => write!(f, "+"),
-            Strand::Antisense => write!(f, "-"),
-            Strand::Unknown => write!(f, "*"),
-        }
-    }
+/// Checks weather a given CG site belongs to a specific gene. The cutoff is the number of bases upstream and downstream of the gene to consider the CG site in the gene. For example, a cutoff of 1000 would consider a CG site 1000 bases upstream of the gene to be in the gene.
+/// To strictly check weather a CG site is within the gene region, pass a cutoff of 0.
+///
+/// Passing a negative cutoff is possible but leads to undefined behaviour if used together with ``find_gene``.
+pub fn is_in_gene(
+    site: &MethylationSite,
+    gene: &Gene,
+    cutoff_gene_length: bool,
+    cutoff: u32,
+) -> bool {
+    let cutoff = if cutoff_gene_length {
+        gene.end - gene.start
+    } else {
+        cutoff
+    };
+    site.chromosome == gene.chromosome
+        && gene.start <= site.start + cutoff
+        && site.end <= gene.end + cutoff
+        && site.strand == gene.strand
 }
 
-impl Display for Chromosome {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Chromosome::Mitochondrial => write!(f, "M"),
-            Chromosome::Chloroplast => write!(f, "C"),
-            Chromosome::Numbered(n) => write!(f, "{n}"),
+/// Find the gene within a genome that a CG site belongs to. Due to binary search, searching is O(log n) where n is the number of genes in the genome.
+/// Therefore, this method is efficient to use on large genomes.
+///
+/// The lifetime of the genome is longer than the lifetime of the CG site.
+/// GG sites exist only while a single methylation file is being processed but the genome is loaded once and exists for the entire program
+pub fn find_gene<'long>(
+    site: &MethylationSite,
+    genome: &'long Genome,
+    cutoff_gene_length: bool,
+    cutoff: u32,
+) -> Option<&'long Gene> {
+    // This can fail sensibly if there are chromosomes in the methylome files that are not in the annotation files
+    let chromosome = genome.get(&site.chromosome)?;
+
+    let strand: &Vec<Gene> = match site.strand {
+        Strand::Sense => &chromosome.sense, // This is a performance hit. Is there a better way to do this?
+        Strand::Antisense => &chromosome.antisense,
+        Strand::Unknown => &chromosome.combined,
+    };
+
+    let search = |gene: &Gene| {
+        if cutoff_gene_length {
+            gene.end + (gene.end - gene.start)
+        } else {
+            gene.end + cutoff
         }
+    };
+
+    let first_matching_gene_index = strand
+        .binary_search_by_key(&site.start, search)
+        .unwrap_or_else(|x| x); // Collapse exact match on gene end and closest previous match into one, as both are valid
+
+    if strand.len() < first_matching_gene_index + 1 {
+        return None;
     }
+
+    let gene = &strand[first_matching_gene_index];
+
+    if is_in_gene(site, gene, cutoff_gene_length, cutoff) {
+        return Some(gene);
+    }
+
+    None
 }

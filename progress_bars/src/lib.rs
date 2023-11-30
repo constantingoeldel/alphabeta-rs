@@ -1,6 +1,8 @@
 use std::{fmt::Write, time::Duration};
+use std::ops::Deref;
 
-use indicatif::{HumanDuration, MultiProgress, ProgressBar, ProgressState, ProgressStyle};
+use indicatif::{HumanDuration, ProgressState, ProgressStyle};
+pub use indicatif::{MultiProgress, ProgressBar};
 
 pub struct Progress(pub ProgressBar);
 

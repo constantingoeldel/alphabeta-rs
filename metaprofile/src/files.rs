@@ -4,23 +4,21 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::bail;
-
-use crate::error::Error;
+use crate::Error;
 
 use crate::*;
 
-pub fn open_file(path: &PathBuf) -> Result<File> {
+pub fn open_file(path: &PathBuf) -> Return<File> {
     let file = File::open(path).or(Err(Error::File(path.to_owned())))?;
     Ok(file)
 }
 
-pub fn lines_from_file(path: &PathBuf) -> Result<io::Lines<io::BufReader<File>>> {
-    let file = File::open(path).or(Err(Error::File(path.to_owned())))?;
+pub fn lines_from_file(path: &PathBuf) -> Return<io::Lines<io::BufReader<File>>> {
+    let file = File::open(path).map_err(|_| Error::File(path.to_owned()))?;
     Ok(io::BufReader::new(file).lines())
 }
 
-pub fn load_methylome(methylome: &PathBuf) -> Result<Vec<PathBuf>> {
+pub fn load_methylome(methylome: &PathBuf) -> Return<Vec<PathBuf>> {
     let methylome_dir = fs::read_dir(methylome).or(Err(Error::File(methylome.to_owned())))?;
     let methylome_files: Vec<PathBuf> = methylome_dir
         .map(|f| f.as_ref().unwrap().path())
@@ -31,7 +29,7 @@ pub fn load_methylome(methylome: &PathBuf) -> Result<Vec<PathBuf>> {
         }) // Filter out tsv and fn files, which are often nodelist/edgelist files.
         .collect();
     if methylome_files.is_empty() {
-        bail!("Could not find any files in the methylome directory. Please check your input. Files with .tsv or .fn extensions are ignored.")
+        Err(Error::NoMethylomeFiles)
     } else {
         Ok(methylome_files)
     }

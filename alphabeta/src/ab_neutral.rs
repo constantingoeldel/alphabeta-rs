@@ -1,13 +1,11 @@
 use std::sync::Mutex;
 
-use crate::{
-    divergence::divergence,
-    pedigree::Pedigree,
-    structs::{Model, PredictedDivergence, Problem, Progress, Residuals},
-    *,
-};
+use crate::divergence::divergence;
+use crate::optimizer::{Model, PredictedDivergence, Problem, Residuals};
+use crate::{config, Error, Return};
 use argmin::{core::Executor, solver::neldermead::NelderMead};
-use indicatif::ProgressBar;
+use pedigree::Pedigree;
+use progress_bars::ProgressBar;
 use rayon::prelude::*;
 
 pub fn run(
@@ -15,18 +13,18 @@ pub fn run(
     p0uu: f64,
     eqp: f64,
     eqp_weight: f64,
-    n_starts: usize,
     pb: Option<&ProgressBar>,
-) -> Result<(Model, PredictedDivergence, Residuals), Box<dyn std::error::Error>> {
-    let alternative_pb = Progress::new("ABneutral", n_starts).0;
-    let pb = pb.unwrap_or(&alternative_pb);
+) -> Return<(Model, PredictedDivergence, Residuals)> {
+    // let alternative_pb = Progress::new("ABneutral", n_starts).0;
+    // let pb = pb.unwrap_or(&alternative_pb);
+    let n_starts = config::get().iterations;
     let p0mm = 1.0 - p0uu;
     let p0um = 0.0;
     let max_divergence = *pedigree
         .column(3)
         .iter()
-        .max_by(|a, b| a.partial_cmp(b).unwrap())
-        .unwrap();
+        .max_by(|a, b| a.partial_cmp(b).expect("There is a NaN value in the divergence column"))
+        .expect("Maximum divergence could not be calculated, most likely because there are no valid rows in the pedigree");
 
     assert_eq!(p0mm + p0uu + p0um, 1.0);
 
@@ -34,49 +32,56 @@ pub fn run(
     // let counter = AtomicU32::new(0);
 
     // Optimization loop
-    (0..n_starts).into_par_iter().for_each(|_| {
-        // Draw random starting values
+    let res: Result<Vec<_>, Error> = (0..n_starts)
+        .into_par_iter()
+        .map(|_| -> Return<()> {
+            // Draw random starting values
 
-        let problem = Problem {
-            pedigree: pedigree.clone(),
-            eqp_weight,
-            eqp,
-            p_mm: p0mm,
-            p_um: p0um,
-            p_uu: p0uu,
-        };
-        // Run Nelder-Mead optimization
-        let nm = NelderMead::new(vec![
-            Model::new(max_divergence).to_vec(),
-            Model::new(max_divergence).to_vec(),
-            Model::new(max_divergence).to_vec(),
-            Model::new(max_divergence).to_vec(),
-            Model::new(max_divergence).to_vec(),
-        ]);
+            let problem = Problem {
+                pedigree: pedigree.clone(),
+                eqp_weight,
+                eqp,
+                p_mm: p0mm,
+                p_um: p0um,
+                p_uu: p0uu,
+            };
+            // Run Nelder-Mead optimization
+            let nm = NelderMead::new(vec![
+                Model::new(max_divergence).to_vec(),
+                Model::new(max_divergence).to_vec(),
+                Model::new(max_divergence).to_vec(),
+                Model::new(max_divergence).to_vec(),
+                Model::new(max_divergence).to_vec(),
+            ]);
 
-        let res = Executor::new(problem, nm)
-            .configure(|state| {
-                state
-                    // .param(vec![alpha, beta, weight, intercept])
-                    .max_iters(10000)
-            })
-            .run()
-            .expect("Failed to run Nelder-Mead optimization");
+            let res = Executor::new(problem, nm)
+                .configure(|state| {
+                    state
+                        // .param(vec![alpha, beta, weight, intercept])
+                        .max_iters(10000)
+                })
+                .run()?;
 
-        let m = Model::from_vec(&res.state.best_param.unwrap());
+            let m = Model::from_vec(&res.state.best_param.expect(
+                "Best parameters must have been found if the optimization ran successfully",
+            ));
 
-        // let predicted_mm = (m.alpha * ((1.0 - m.alpha).powi(2) - (1.0 - m.beta).powi(2) - 1.0))
-        //     / ((m.alpha + m.beta) * ((m.alpha + m.beta - 1.0).powi(2) - 2.0));
-        // let predicted_um = (4.0 * m.alpha * m.beta * (m.alpha + m.beta - 2.0))
-        //     / ((m.alpha + m.beta) * ((m.alpha + m.beta - 1.0).powi(2) - 2.0));
-        // let predicted_uu = (m.beta * ((1.0 - m.beta).powi(2) - (1.0 - m.alpha).powi(2) - 1.0))
-        //     / ((m.alpha + m.beta) * ((m.alpha + m.beta - 1.0).powi(2) - 2.0));
-        results.lock().unwrap().push(m);
-        // let c = counter.fetch_add(1, Ordering::SeqCst);
-        pb.inc(1);
-        //  println!("Progress: {}%", ((c * 100) as f32 / (n_starts) as f32));
-    });
-    pb.finish();
+            // let predicted_mm = (m.alpha * ((1.0 - m.alpha).powi(2) - (1.0 - m.beta).powi(2) - 1.0))
+            //     / ((m.alpha + m.beta) * ((m.alpha + m.beta - 1.0).powi(2) - 2.0));
+            // let predicted_um = (4.0 * m.alpha * m.beta * (m.alpha + m.beta - 2.0))
+            //     / ((m.alpha + m.beta) * ((m.alpha + m.beta - 1.0).powi(2) - 2.0));
+            // let predicted_uu = (m.beta * ((1.0 - m.beta).powi(2) - (1.0 - m.alpha).powi(2) - 1.0))
+            //     / ((m.alpha + m.beta) * ((m.alpha + m.beta - 1.0).powi(2) - 2.0));
+            results.lock().unwrap().push(m);
+            // let c = counter.fetch_add(1, Ordering::SeqCst);
+            // pb.inc(1);
+            //  println!("Progress: {}%", ((c * 100) as f32 / (n_starts) as f32));
+            Ok(())
+        })
+        .collect();
+
+    res?;
+    // pb.finish();
 
     let mut results = results.into_inner().unwrap();
     // Calculating the least squares error for all results and selecting the best one
@@ -97,7 +102,9 @@ pub fn run(
             .zip(pedigree.column(3))
             .map(|(div, ped)| (ped - b.intercept - div).powi(2))
             .sum::<f64>();
-        lse_a.partial_cmp(&lse_b).unwrap() // Sort ascending
+        lse_a
+            .partial_cmp(&lse_b)
+            .expect("There is a NaN value in the LSE comparison") // Sort ascending
     });
 
     // Calculting the predicted values based on the 'best' model (i.e. that with the lowest least square)

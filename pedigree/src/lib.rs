@@ -5,13 +5,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, Error};
+mod error;
+pub use error::Error::{self, *};
+pub type Return<T> = std::result::Result<T, Error>;
+
 use petgraph::{algo::astar, prelude::UnGraph};
 
-use crate::{
-    methylation_site::{MethylationSite, MethylationStatus},
-    *,
-};
+use methylome::{MethylationSite, MethylationStatus};
+
 use ndarray::{array, Array2, ArrayView, Axis};
 #[derive(Clone, Debug)]
 struct Node {
@@ -78,8 +79,11 @@ impl Pedigree {
         Pedigree(pedigree)
     }
 
-    pub fn to_file(&self, path: &Path) -> std::io::Result<()> {
-        println!("Writing pedigree to file: {}", path.display());
+    pub fn to_file<P>(&self, path: P) -> std::io::Result<()>
+    where
+        P: AsRef<Path> + std::fmt::Debug,
+    {
+        println!("Writing pedigree to file: {:?}", path);
         let mut file = File::create(path)?;
         let mut content = String::new();
         content += "time0\ttime1\ttime2\tD.value\n";
@@ -89,11 +93,10 @@ impl Pedigree {
         file.write_all(content.as_bytes())
     }
 
-    pub fn build(
-        nodelist: &Path,
-        edgelist: &Path,
-        posterior_max_filter: f64,
-    ) -> Result<(Self, f64), Error> {
+    pub fn build<P>(nodelist: P, edgelist: P, posterior_max_filter: f64) -> Return<(Self, f64)>
+    where
+        P: AsRef<Path>,
+    {
         let nodes = fs::read_to_string(nodelist)?;
         let edges = fs::read_to_string(edgelist)?;
         let nodes: Vec<Node> = nodes
@@ -115,9 +118,7 @@ impl Pedigree {
             })
             .collect();
         if nodes.is_empty() {
-            return Err(anyhow::anyhow!(
-                "No nodes could be parsed from the nodelist"
-            ));
+            return Err(NodeParsing);
         }
 
         let edges: Vec<Edge> = edges
@@ -138,8 +139,7 @@ impl Pedigree {
         for node in nodes.iter_mut() {
             // let mut file = PathBuf::from(nodelist.parent().unwrap());
             // file.push(&node.file);
-            let f = File::open(&node.file)
-                .map_err(|_| anyhow!("Could not open node file: {}", node.file.display()))?;
+            let f = File::open(&node.file).map_err(|e| NodeFile(e))?;
             let reader = BufReader::new(f);
 
             let mut sites = Vec::new();

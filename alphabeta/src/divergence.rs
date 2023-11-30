@@ -4,8 +4,8 @@ use ndarray::array;
 
 use ndarray::Array2;
 
-use crate::alphabeta::p_uu_est;
-use crate::pedigree::Pedigree;
+use methylome::p_uu_est;
+use pedigree::Pedigree;
 
 #[derive(Debug)]
 pub struct Divergence {
@@ -113,9 +113,19 @@ pub fn genmatrix(alpha: f64, beta: f64) -> Array2<f64> {
     ]
 }
 
+macro_rules! assert_close {
+    ($x:expr, $y:expr ) => {
+        if ($x - $y).abs() > 1e-4 {
+            panic!(
+                "assertion failed: `abs(left - right) < {}`, (left: `{}`, right: `{}`)",
+                1e-6, $x, $y
+            );
+        }
+    };
+}
+
 #[cfg(test)]
 mod test {
-    use crate::*;
 
     use super::*;
 
@@ -148,7 +158,7 @@ mod test {
             0.06892953,
         );
 
-        let r = include_str!("../data/divergence.txt")
+        let r = include_str!("../../data/divergence.txt")
             .split('\n')
             .map(|s| s.parse::<f64>().unwrap())
             .collect::<Vec<f64>>();

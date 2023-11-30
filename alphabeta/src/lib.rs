@@ -1,16 +1,19 @@
-use anyhow::anyhow;
-use indicatif::MultiProgress;
+mod ab_neutral;
+mod analysis;
+mod boot_model;
+mod config;
+mod divergence;
+pub(crate) mod optimizer;
+mod plot;
 
-use crate::{
-    analysis::{Analysis, RawAnalysis},
-    arguments::AlphaBeta as Args,
-    pedigree::Pedigree,
-    progress::specific,
-    structs::Model,
-    *,
-};
+pub use analysis::Analysis;
+pub use config::AlphaBeta;
+use optimizer::Model;
+use pedigree::Pedigree;
+use progress_bars::MultiProgress;
 
 type ObsSteadyState = f64;
+pub type Return<T> = Result<T, Error>;
 
 /// Run AlphaBeta
 ///
@@ -21,25 +24,24 @@ type ObsSteadyState = f64;
 /// * `Pedigree` - The pedigree used for the analysis
 /// * The observed steady state methylation level
 pub fn run(
-    args: Args,
+    args: AlphaBeta,
     bars: &MultiProgress,
-) -> Result<(Model, Analysis, RawAnalysis, Pedigree, ObsSteadyState)> {
+) -> Return<(Model, Analysis, Pedigree, ObsSteadyState)> {
+    config::set(args);
+
     println!("Building pedigree...");
-    let (pedigree, p0uu) = Pedigree::build(&args.nodes, &args.edges, args.posterior_max_filter)
-        .map_err(|e| anyhow!("Error while building pedigree: {}", e))?;
 
-    let (pb_neutral, pb_boot) = specific(bars, args.iterations);
+    let (pedigree, p0uu) = Pedigree::build(
+        &config::get().nodes,
+        &config::get().edges,
+        config::get().posterior_max_filter,
+    )?;
 
-    let (model, pred_div, residuals) = ab_neutral::run(
-        &pedigree,
-        p0uu,
-        p0uu,
-        1.0,
-        args.iterations,
-        Some(&pb_neutral),
-    )
-    .map_err(|e| anyhow!("Model failed: {}", e))?;
-    let (analysis, raw_analysis) = boot_model::run(
+    let (pb_neutral, pb_boot) = progress_bars::specific(bars, config::get().iterations);
+
+    let (model, pred_div, residuals) =
+        ab_neutral::run(&pedigree, p0uu, p0uu, 1.0, Some(&pb_neutral))?;
+    let analysis = boot_model::run(
         &pedigree,
         &model,
         pred_div,
@@ -47,35 +49,27 @@ pub fn run(
         p0uu,
         p0uu,
         1.0,
-        args.iterations,
         Some(&pb_boot),
-        &args.output,
-    )
-    .map_err(|e| anyhow!("Bootstrap failed: {}", e))?;
+    )?;
     bars.remove(&pb_neutral);
     bars.remove(&pb_boot);
 
-    Ok((model, analysis, raw_analysis, pedigree, 1.0 - p0uu))
+    Ok((model, analysis, pedigree, 1.0 - p0uu))
 }
 
-/// Calculate the steady state UU level
-pub fn p_uu_est(alpha: f64, beta: f64) -> f64 {
-    (beta * ((1.0 - beta).powi(2) - (1.0 - alpha).powi(2) - 1.0))
-        / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0))
-}
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("Argument error")]
+    Argument(#[from] clap::Error),
 
-/// Calculate the steady state MM level
-pub fn p_mm_est(alpha: f64, beta: f64) -> f64 {
-    (alpha * ((1.0 - alpha).powi(2) - (1.0 - beta).powi(2) - 1.0))
-        / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0))
-}
+    #[error("Error while building pedigree: {0}")]
+    Pedigree(#[from] pedigree::Error),
 
-/// Calculate the steady state methylation level
-pub fn steady_state(alpha: f64, beta: f64) -> f64 {
-    let pi_2 = (4.0 * alpha * beta * (alpha + beta - 2.0))
-        / ((alpha + beta) * ((alpha + beta - 1.0).powi(2) - 2.0));
-
-    p_mm_est(alpha, beta) + 0.5 * pi_2
+    #[error("Faild to run optimization algorithm: {0}")]
+    Optimization(#[from] argmin::core::Error),
+    // TODO handle drawing error
+    // #[error("Plotting error {0}")]
+    // Plot(#[from] plotters::drawing::DrawingAreaErrorKind<_>),
 }
 
 #[cfg(test)]

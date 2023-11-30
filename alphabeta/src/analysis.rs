@@ -1,4 +1,4 @@
-use std::{path::Path, fs::File, fmt::Display, ops::Div, io::Write};
+use std::{path::Path, fs::File, fmt::{Display, Debug}, ops::Div, io::Write};
 
 use ndarray::{Array2, ArrayView1, array};
 use ndarray_stats::{interpolate::Linear, Quantile1dExt};
@@ -99,9 +99,10 @@ impl RawAnalysis{
 }
 
 impl Analysis {
-    pub fn to_file(&self, path: &Path) -> std::io::Result<()> {
-        println!("Writing model to file: {}", path.display());
+    pub fn to_file<P>(&self, path: P) -> std::io::Result<()> where P: AsRef<Path> + Debug {
+        println!("Writing model to file: {:?}", path);
         let mut file = File::create(path).unwrap();
+        // TODO: Use the display implementation from below
         let  content = format!(
             "Alpha\t{}\nBeta\t{}\nAlphaBeta\t{}\nWeight\t{}\nIntercept\t{}\nPrMM\t{}\nPrUM\t{}\nPrUU\t{}\nSDAlpha\t{}\nSDBeta\t{}\nSDAlphaBeta\t{}\nSDWeight\t{}\nSDIntercept\t{}\nSDPrMM\t{}\nSDPrUM\t{}\nSDPrUU\t{}\nCIAlpha\t{}-{}\nCIBeta\t{}-{}\nCIAlphaBeta\t{}-{}\nCIWeight\t{}-{}\nCIIntercept\t{}-{}\nCIPrMM\t{}-{}\nCIPrUM\t{}-{}\nCIPrUU\t{}-{}\n",
             self.alpha,
@@ -144,7 +145,7 @@ impl Analysis {
     }
 }
 
-impl Display   for Analysis {
+impl Display for Analysis {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, 
             "Alpha\t{}\nBeta\t{}\nAlphaBeta\t{}\nWeight\t{}\nIntercept\t{}\nPrMM\t{}\nPrUM\t{}\nPrUU\t{}\nSDAlpha\t{}\nSDBeta\t{}\nSDAlphaBeta\t{}\nSDWeight\t{}\nSDIntercept\t{}\nSDPrMM\t{}\nSDPrUM\t{}\nSDPrUU\t{}\nCIAlpha\t{}-{}\nCIBeta\t{}-{}\nCIAlphaBeta\t{}-{}\nCIWeight\t{}-{}\nCIIntercept\t{}-{}\nCIPrMM\t{}-{}\nCIPrUM\t{}-{}\nCIPrUU\t{}-{}\n",
