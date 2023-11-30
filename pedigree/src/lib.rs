@@ -9,7 +9,7 @@ use std::{
 
 mod error;
 use dmatrix::DMatrix;
-pub use error::Error::{self, *};
+pub use error::Error;
 pub type Return<T> = std::result::Result<T, Error>;
 
 use methylome::{MethylationSite, MethylationStatus};
@@ -123,7 +123,7 @@ impl Pedigree {
             })
             .collect();
         if nodes.is_empty() {
-            return Err(NodeParsing);
+            return Err(Error::NodeParsing);
         }
 
         let edges: Vec<Edge> = edges
@@ -148,7 +148,7 @@ impl Pedigree {
             pb.inc(1);
             // let mut file = PathBuf::from(nodelist.parent().unwrap());
             // file.push(&node.file);
-            let f = File::open(&node.file).map_err(NodeFile)?;
+            let f = File::open(&node.file).map_err(Error::NodeFile)?;
             let reader = BufReader::new(f);
 
             let mut sites = Vec::new();
