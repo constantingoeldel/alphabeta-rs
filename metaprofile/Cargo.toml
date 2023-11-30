@@ -23,8 +23,8 @@ clap = { version = "4.1.4", features = ["derive"] }
 thiserror = "1.0.40"
 itertools = "0.10.5"
 plotters = "0.3.4"
-alphabeta = { path = "../alphabeta" }
-methylome = { path = "../methylome" }
-progress_bars = { path = "../progress_bars" }
+alphabeta = { path = "../alphabeta", version = "*"}
+methylome = { path = "../methylome", version = "*"}
+progress_bars = { path = "../progress_bars", version = "*" }
 
 
