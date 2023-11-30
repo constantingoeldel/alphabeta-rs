@@ -2,7 +2,7 @@ use alphabeta::Analysis;
 use itertools::Itertools;
 use plotters::prelude::*;
 
-use crate::{Metaprofile};
+use crate::Metaprofile;
 
 pub fn metaplot(
     analyses: &[Analysis],

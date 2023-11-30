@@ -1,3 +1,5 @@
+extern crate openblas_src;
+
 mod ab_neutral;
 mod analysis;
 mod boot_model;
