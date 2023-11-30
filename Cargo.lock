@@ -971,7 +971,7 @@ dependencies = [
 
 [[package]]
 name = "methylome"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "itertools 0.10.5",
  "thiserror",
@@ -1249,7 +1249,7 @@ dependencies = [
 
 [[package]]
 name = "pedigree"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "methylome",
  "ndarray",
@@ -1368,7 +1368,7 @@ dependencies = [
 
 [[package]]
 name = "progress_bars"
-version = "0.1.0"
+version = "0.3.0"
 dependencies = [
  "indicatif",
 ]
