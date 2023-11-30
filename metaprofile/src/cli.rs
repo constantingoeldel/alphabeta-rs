@@ -1,10 +1,10 @@
-use metaprofile::{extract, Metaprofile as Args, Subcommands};
+use metaprofile::{extract, Metaprofile as Args};
 
 use clap::Parser;
-use methylome::steady_state;
-use ndarray::{Array, Axis};
-use ndarray_npy::write_npy;
-use std::fs;
+
+
+
+
 
 fn main() {
     let mut args = Args::parse();
@@ -28,7 +28,7 @@ fn main() {
     // move to lib.rs, rename to metaprofile
     let result = extract(args.clone());
 
-    match (result) {
+    match result {
         Err(e) => println!("Error: {e}"),
         _ => println!("Done"),
     }

@@ -21,7 +21,7 @@ pub fn extract(args: config::Metaprofile) -> Return<()> {
     set(args.clone());
     let start = std::time::Instant::now();
 
-    let mut args = args;
+    let args = args;
 
     let methylome_files = load_methylome(&args.methylome)?;
     let annotation_lines = lines_from_file(&args.genome)?;

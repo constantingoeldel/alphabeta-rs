@@ -250,11 +250,9 @@ impl Windows {
     }
 
     pub fn save(&self, args: Args, filename: String) -> Return<()> {
-        for windows in vec![
-            (&self.upstream, "upstream"),
+        for windows in [(&self.upstream, "upstream"),
             (&self.gene, "gene"),
-            (&self.downstream, "downstream"),
-        ]
+            (&self.downstream, "downstream")]
         .iter()
         {
             for (window, cg_sites) in windows.0.iter().enumerate() {
@@ -358,7 +356,7 @@ impl Display for Windows {
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    
     use crate::config::Metaprofile as Args;
     #[test]
     fn new_absolute() {

@@ -1,7 +1,7 @@
 use progress_bars::ProgressBar;
 use rand::{distributions::Slice, thread_rng, Rng};
 use rayon::prelude::*;
-use std::{path::Path, sync::Mutex};
+use std::{sync::Mutex};
 
 use argmin::{core::Executor, solver::neldermead::NelderMead};
 use ndarray::{array, s, Array1, Array2, Axis};
@@ -21,7 +21,7 @@ pub fn run(
     p0uu: f64,
     eqp: f64,
     eqp_weight: f64,
-    pb: Option<&ProgressBar>,
+    _pb: Option<&ProgressBar>,
 ) -> Return<Analysis> {
     // let alternative_pb = Progress::new("BootModel", n_boot).0;
     // let pb = pb.unwrap_or(&alternative_pb);

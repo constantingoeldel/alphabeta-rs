@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt::Display, ops::Deref};
 use itertools::Itertools;
 use methylome::{Chromosome, MethylationSite, Strand};
 
-use crate::{Error, Return};
+use crate::{Return};
 
 use crate::print_dev;
 

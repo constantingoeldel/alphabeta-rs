@@ -139,7 +139,7 @@ impl Pedigree {
         for node in nodes.iter_mut() {
             // let mut file = PathBuf::from(nodelist.parent().unwrap());
             // file.push(&node.file);
-            let f = File::open(&node.file).map_err(|e| NodeFile(e))?;
+            let f = File::open(&node.file).map_err(NodeFile)?;
             let reader = BufReader::new(f);
 
             let mut sites = Vec::new();

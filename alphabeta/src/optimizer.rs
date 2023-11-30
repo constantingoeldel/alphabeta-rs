@@ -1,4 +1,4 @@
-use std::{fmt::Display, fs::File, io::Write, ops::Deref, path::Path};
+use std::{fmt::Display, fs::File, io::Write, path::Path};
 
 use argmin::core::CostFunction;
 
