@@ -1,4 +1,4 @@
-use std::{fs, io::Write, sync::Mutex};
+use std::{fs, sync::Mutex};
 
 use crate::{
     config::set,

@@ -5,7 +5,7 @@ use crate::optimizer::{Model, PredictedDivergence, Problem, Residuals};
 use crate::{config, Error, Return};
 use argmin::{core::Executor, solver::neldermead::NelderMead};
 use pedigree::Pedigree;
-use progress_bars::ProgressBar;
+
 use rayon::prelude::*;
 
 pub fn run(

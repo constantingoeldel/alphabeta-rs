@@ -1,4 +1,4 @@
-use progress_bars::ProgressBar;
+
 use rand::{distributions::Slice, thread_rng, Rng};
 use rayon::prelude::*;
 use std::sync::Mutex;
@@ -8,7 +8,6 @@ use ndarray::{array, s, Array1, Array2, Axis};
 
 use crate::{
     analysis::{Analysis, RawAnalysis},
-    config::get,
     optimizer::{Model, PredictedDivergence, Problem, Residuals},
     plot, *,
 };
