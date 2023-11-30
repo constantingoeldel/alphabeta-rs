@@ -113,19 +113,19 @@ pub fn genmatrix(alpha: f64, beta: f64) -> Array2<f64> {
     ]
 }
 
-macro_rules! assert_close {
-    ($x:expr, $y:expr ) => {
-        if ($x - $y).abs() > 1e-4 {
-            panic!(
-                "assertion failed: `abs(left - right) < {}`, (left: `{}`, right: `{}`)",
-                1e-6, $x, $y
-            );
-        }
-    };
-}
-
 #[cfg(test)]
 mod test {
+
+    macro_rules! assert_close {
+        ($x:expr, $y:expr ) => {
+            if ($x - $y).abs() > 1e-4 {
+                panic!(
+                    "assertion failed: `abs(left - right) < {}`, (left: `{}`, right: `{}`)",
+                    1e-6, $x, $y
+                );
+            }
+        };
+    }
 
     use super::*;
 

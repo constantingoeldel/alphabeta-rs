@@ -1,4 +1,3 @@
-
 use rand::{distributions::Slice, thread_rng, Rng};
 use rayon::prelude::*;
 use std::sync::Mutex;

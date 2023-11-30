@@ -50,31 +50,12 @@ impl Windows {
         }
     }
 
-    pub fn get(&self, region: Region) -> &Vec<Window> {
-        match region {
-            Region::Upstream => &self.upstream,
-            Region::Gene => &self.gene,
-            Region::Downstream => &self.downstream,
-        }
-    }
     pub fn get_mut<'a>(&'a mut self, location: &Region) -> &'a mut Vec<Window> {
         match location {
             Region::Upstream => &mut self.upstream,
             Region::Gene => &mut self.gene,
             Region::Downstream => &mut self.downstream,
         }
-    }
-
-    pub fn iter_upstream(&self) -> std::slice::Iter<'_, std::vec::Vec<MethylationSite>> {
-        self.upstream.iter()
-    }
-
-    pub fn iter_gene(&self) -> std::slice::Iter<'_, std::vec::Vec<MethylationSite>> {
-        self.gene.iter()
-    }
-
-    pub fn iter_downstream(&self) -> std::slice::Iter<'_, std::vec::Vec<MethylationSite>> {
-        self.downstream.iter()
     }
 
     pub fn inverse(mut self) -> Self {

@@ -131,14 +131,3 @@ fn validate_default_output_dir(s: &str) -> Result<PathBuf, String> {
         ))
     }
 }
-
-fn validate_default_file_existence(s: &str) -> Result<PathBuf, String> {
-    if PathBuf::from(s).exists() {
-        println!("Using default file: {}", PathBuf::from(s).display());
-        Ok(PathBuf::from(s))
-    } else {
-        Err(format!(
-            "Please provide a valid file path. By default, we will try {s}, which does not exist."
-        ))
-    }
-}
