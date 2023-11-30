@@ -1,3 +1,5 @@
+mod dmatrix;
+
 use std::{
     fs::{self, File},
     io::{BufRead, BufReader, Write},
@@ -6,14 +8,13 @@ use std::{
 };
 
 mod error;
+use dmatrix::DMatrix;
 pub use error::Error::{self, *};
 pub type Return<T> = std::result::Result<T, Error>;
 
-use petgraph::{algo::astar, prelude::UnGraph};
-
 use methylome::{MethylationSite, MethylationStatus};
 
-use ndarray::{array, Array2, ArrayView, Axis};
+use ndarray::{Array2, ArrayView};
 #[derive(Clone, Debug)]
 struct Node {
     id: usize,
@@ -44,6 +45,7 @@ struct Edge<'a> {
 /// The length of the pedigree is the number of possible pairs of samples, for which methlyation data is available => n * (n - 1) / 2
 #[derive(Clone, Debug)]
 pub struct Pedigree(Array2<f64>);
+type UnmethylatedLevel = f64;
 
 impl Pedigree {
     /// Read a pedigree from a file.
@@ -92,8 +94,11 @@ impl Pedigree {
         }
         file.write_all(content.as_bytes())
     }
-
-    pub fn build<P>(nodelist: P, edgelist: P, posterior_max_filter: f64) -> Return<(Self, f64)>
+    pub fn build<P>(
+        nodelist: P,
+        edgelist: P,
+        posterior_max_filter: f64,
+    ) -> Return<(Self, UnmethylatedLevel)>
     where
         P: AsRef<Path>,
     {
@@ -136,7 +141,11 @@ impl Pedigree {
             .collect();
 
         let mut nodes: Vec<Node> = nodes.iter().filter(|n| n.meth).cloned().collect();
+
+        let pb = progress_bars::Progress::new("Loading Methylation Data", nodes.len());
+
         for node in nodes.iter_mut() {
+            pb.inc(1);
             // let mut file = PathBuf::from(nodelist.parent().unwrap());
             // file.push(&node.file);
             let f = File::open(&node.file).map_err(NodeFile)?;
@@ -175,17 +184,13 @@ impl Pedigree {
             node.rc_meth_lvl = Some(avg_meth_lvl);
             node.sites = Some(sites);
         }
+        pb.finish();
 
         let tmp0uu_meth_lvl = nodes
             .iter()
             .map(|n| 1.0 - n.rc_meth_lvl.unwrap())
             .sum::<f64>()
             / nodes.len() as f64;
-        // dbg!(
-        //     tmp0uu,
-        //     tmp0uu_meth_lvl,
-        //     (tmp0uu - tmp0uu_meth_lvl).abs() / tmp0uu
-        // );
 
         let divergence = DMatrix::from(&nodes, posterior_max_filter);
         let pedigree = divergence.convert(&nodes, &edges);
@@ -204,136 +209,6 @@ impl Deref for Pedigree {
 impl DerefMut for Pedigree {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
-    }
-}
-
-#[derive(Debug)]
-struct DMatrix(Array2<f64>);
-
-impl DMatrix {
-    fn from(nodes: &Vec<Node>, posterior_max: f64) -> Self {
-        let mut divergences = Array2::<f64>::zeros((nodes.len(), nodes.len()));
-
-        // Go over all pairs of nodes, excluding self-pairs
-        for (i, first) in nodes.iter().enumerate() {
-            for (j, second) in nodes.iter().skip(i + 1).enumerate() {
-                assert!(first.sites.as_ref().is_some());
-                assert!(second.sites.as_ref().is_some());
-                if first.sites.as_ref().unwrap().len() != second.sites.as_ref().unwrap().len() {
-                    println!(
-                        "Lengths do not match, all bets are off: {} vs {}",
-                        first.sites.as_ref().unwrap().len(),
-                        second.sites.as_ref().unwrap().len()
-                    );
-                    divergences[[i, j]] = 0.0;
-                    continue;
-                }
-                assert_eq!(
-                    first.sites.as_ref().unwrap().len(),
-                    second.sites.as_ref().unwrap().len()
-                );
-
-                let mut divergence = 0;
-                let mut compared_sites = 0;
-
-                // Go over all sites in the first sample
-                // IMPORTANT: It is assumed that the same sites are included in the datasets and that the sites are sorted by position
-                for (k, f) in first.sites.as_ref().unwrap().iter().enumerate() {
-                    let s = second
-                        .sites
-                        .as_ref()
-                        .unwrap()
-                        .get(k)
-                        .expect("Partner methylation site must exists");
-
-                    if f.posteriormax < posterior_max || s.posteriormax < posterior_max {
-                        continue;
-                    }
-
-                    divergence += f.status_numeric().abs_diff(s.status_numeric());
-                    compared_sites += 1;
-                }
-
-                let divergence = divergence as f64 / (2.0 * compared_sites as f64);
-                divergences[[i, j]] = divergence;
-            }
-        }
-        DMatrix(divergences)
-    }
-    /// Convert graph of divergences to pedigree
-    fn convert(&self, nodes: &[Node], edges: &[Edge]) -> Pedigree {
-        let e = edges
-            .iter()
-            .map(|e| {
-                (
-                    e.from.id,
-                    e.to.id,
-                    e.from.generation.abs_diff(e.to.generation) as usize,
-                    // self.0.get((e.from.id, e.to.id)).unwrap(),
-                )
-            })
-            .collect::<Vec<(usize, usize, usize)>>();
-
-        let graph = UnGraph::<usize, usize, usize>::from_edges(e);
-
-        let mut pedigree = Pedigree(Array2::<f64>::default((0, 4)));
-
-        for (i, source) in nodes.iter().enumerate() {
-            for (j, target) in nodes.iter().skip(i + 1).enumerate() {
-                if source.id == target.id {
-                    // Explicitly skip self-pairs
-                    continue;
-                }
-
-                let path = astar(
-                    &graph,
-                    source.id.into(),
-                    |finish| finish == target.id.into(),
-                    |e| *e.weight(),
-                    |_| 0,
-                );
-
-                match path {
-                    None => continue,
-                    Some(path) => {
-                        let distance = path.0;
-                        let visited = path.1;
-
-                        let t0: f64 = visited
-                            .iter()
-                            .map(|n| {
-                                edges
-                                    .iter()
-                                    .find_map(|e| {
-                                        if e.from.id == n.index() {
-                                            return Some(e.from.generation);
-                                        }
-                                        if e.to.id == n.index() {
-                                            return Some(e.to.generation);
-                                        }
-                                        None
-                                    })
-                                    .unwrap()
-                            })
-                            .min()
-                            .unwrap() as f64;
-
-                        let t1 = source.generation as f64;
-                        let t2 = target.generation as f64;
-
-                        let div = self.0.get((i, j)).unwrap().to_owned();
-
-                        assert_eq!(distance as f64, t1 - t0 + t2 - t0);
-                        pedigree
-                            .0
-                            .push(Axis(0), array![t0, t1, t2, div].view())
-                            .expect("Could not insert row into pedigree");
-                    }
-                }
-            }
-        }
-
-        pedigree
     }
 }
 

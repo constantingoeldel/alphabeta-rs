@@ -2,10 +2,6 @@ use metaprofile::{extract, Metaprofile as Args};
 
 use clap::Parser;
 
-
-
-
-
 fn main() {
     let mut args = Args::parse();
 
@@ -29,7 +25,7 @@ fn main() {
     let result = extract(args.clone());
 
     match result {
-        Err(e) => println!("Error: {e}"),
+        Err(e) => println!("{e}"),
         _ => println!("Done"),
     }
 }

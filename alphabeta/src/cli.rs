@@ -5,15 +5,13 @@ use methylome::steady_state;
 fn main() {
     let args = Args::parse();
 
-    let (multi, _) = progress_bars::multi(1);
-    // PROGRESS_BARS.get_or_init(|| multi);
-
-    let result = alphabeta::run(args.clone(), &multi);
+    let result = alphabeta::run(args.clone());
 
     match result {
-        Err(e) => println!("Error: {e}"),
+        Err(e) => println!("{e}"),
         Ok((model, analysis, pedigree, obs_steady_state)) => {
-            println!("##########");
+            println!();
+            println!();
             println!("Results:\n");
             println!("{model}");
             println!("{analysis}");

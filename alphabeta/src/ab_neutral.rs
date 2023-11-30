@@ -13,10 +13,8 @@ pub fn run(
     p0uu: f64,
     eqp: f64,
     eqp_weight: f64,
-    _pb: Option<&ProgressBar>,
 ) -> Return<(Model, PredictedDivergence, Residuals)> {
-    // let alternative_pb = Progress::new("ABneutral", n_starts).0;
-    // let pb = pb.unwrap_or(&alternative_pb);
+    let pb = progress_bars::Progress::new("ABneutral", config::get().iterations);
     let n_starts = config::get().iterations;
     let p0mm = 1.0 - p0uu;
     let p0um = 0.0;
@@ -74,14 +72,14 @@ pub fn run(
             //     / ((m.alpha + m.beta) * ((m.alpha + m.beta - 1.0).powi(2) - 2.0));
             results.lock().unwrap().push(m);
             // let c = counter.fetch_add(1, Ordering::SeqCst);
-            // pb.inc(1);
+            pb.inc(1);
             //  println!("Progress: {}%", ((c * 100) as f32 / (n_starts) as f32));
             Ok(())
         })
         .collect();
 
     res?;
-    // pb.finish();
+    pb.finish();
 
     let mut results = results.into_inner().unwrap();
     // Calculating the least squares error for all results and selecting the best one

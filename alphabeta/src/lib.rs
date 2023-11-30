@@ -12,7 +12,6 @@ pub use analysis::Analysis;
 pub use config::AlphaBeta;
 use optimizer::Model;
 use pedigree::Pedigree;
-use progress_bars::MultiProgress;
 
 type ObsSteadyState = f64;
 pub type Return<T> = Result<T, Error>;
@@ -25,36 +24,24 @@ pub type Return<T> = Result<T, Error>;
 /// * `Analysis` - The analysis of the model, done by bootstrapping
 /// * `Pedigree` - The pedigree used for the analysis
 /// * The observed steady state methylation level
-pub fn run(
-    args: AlphaBeta,
-    bars: &MultiProgress,
-) -> Return<(Model, Analysis, Pedigree, ObsSteadyState)> {
+pub fn run(args: AlphaBeta) -> Return<(Model, Analysis, Pedigree, ObsSteadyState)> {
     config::set(args);
 
+    println!();
     println!("Building pedigree...");
+    println!();
 
     let (pedigree, p0uu) = Pedigree::build(
         &config::get().nodes,
         &config::get().edges,
         config::get().posterior_max_filter,
     )?;
-
-    let (pb_neutral, pb_boot) = progress_bars::specific(bars, config::get().iterations);
-
-    let (model, pred_div, residuals) =
-        ab_neutral::run(&pedigree, p0uu, p0uu, 1.0, Some(&pb_neutral))?;
-    let analysis = boot_model::run(
-        &pedigree,
-        &model,
-        pred_div,
-        residuals,
-        p0uu,
-        p0uu,
-        1.0,
-        Some(&pb_boot),
-    )?;
-    bars.remove(&pb_neutral);
-    bars.remove(&pb_boot);
+    println!();
+    println!();
+    println!("Estimating inheritance gain and loss...");
+    println!();
+    let (model, pred_div, residuals) = ab_neutral::run(&pedigree, p0uu, p0uu, 1.0)?;
+    let analysis = boot_model::run(&pedigree, &model, pred_div, residuals, p0uu, p0uu, 1.0)?;
 
     Ok((model, analysis, pedigree, 1.0 - p0uu))
 }
@@ -69,6 +56,15 @@ pub enum Error {
 
     #[error("Faild to run optimization algorithm: {0}")]
     Optimization(#[from] argmin::core::Error),
+
+    #[error("Please provide a valid output directory. By default, we will try {0}, which does not exist.")]
+    OutputDirNonExistent(String),
+
+    #[error("Please provide a valid path to an edgelist file. By default, we will try {0}, which does not exist.")]
+    EdgelistNonExistent(String),
+
+    #[error("Please provide a valid path to a nodelist file. By default, we will try {0}, which does not exist.")]
+    NodelistNonExistent(String),
     // TODO handle drawing error
     // #[error("Plotting error {0}")]
     // Plot(#[from] plotters::drawing::DrawingAreaErrorKind<_>),

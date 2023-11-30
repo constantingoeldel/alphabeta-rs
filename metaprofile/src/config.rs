@@ -127,7 +127,7 @@ fn validate_default_output_dir(s: &str) -> Result<PathBuf, String> {
         Ok(PathBuf::from(s))
     } else {
         Err(format!(
-            "Please provide a valid output directory. By default, we fill try {s}, which does not exist."
+            "Please provide a valid output directory. By default, we will try {s}, which does not exist."
         ))
     }
 }
@@ -138,7 +138,7 @@ fn validate_default_file_existence(s: &str) -> Result<PathBuf, String> {
         Ok(PathBuf::from(s))
     } else {
         Err(format!(
-            "Please provide a valid file path. By default, we fill try {s}, which does not exist."
+            "Please provide a valid file path. By default, we will try {s}, which does not exist."
         ))
     }
 }

@@ -102,45 +102,7 @@ impl Analysis {
     pub fn to_file<P>(&self, path: P) -> std::io::Result<()> where P: AsRef<Path> + Debug {
         println!("Writing model to file: {:?}", path);
         let mut file = File::create(path).unwrap();
-        // TODO: Use the display implementation from below
-        let  content = format!(
-            "Alpha\t{}\nBeta\t{}\nAlphaBeta\t{}\nWeight\t{}\nIntercept\t{}\nPrMM\t{}\nPrUM\t{}\nPrUU\t{}\nSDAlpha\t{}\nSDBeta\t{}\nSDAlphaBeta\t{}\nSDWeight\t{}\nSDIntercept\t{}\nSDPrMM\t{}\nSDPrUM\t{}\nSDPrUU\t{}\nCIAlpha\t{}-{}\nCIBeta\t{}-{}\nCIAlphaBeta\t{}-{}\nCIWeight\t{}-{}\nCIIntercept\t{}-{}\nCIPrMM\t{}-{}\nCIPrUM\t{}-{}\nCIPrUU\t{}-{}\n",
-            self.alpha,
-            self.beta,
-            self.alphabeta,
-            self.weight,
-            self.intercept,
-            self.pr_mm,
-            self.pr_um,
-            self.pr_uu,
-            self.sd_alpha,
-            self.sd_beta,
-            self.sd_alphabeta,
-            self.sd_weight,
-            self.sd_intercept,
-            self.sd_pr_mm,
-            self.sd_pr_um,
-            self.sd_pr_uu,
-            self.ci_alpha.0,
-            self.ci_alpha.1,
-            self.ci_beta.0,
-            self.ci_beta.1,
-            self.ci_alphabeta.0,
-            self.ci_alphabeta.1,
-            self.ci_weight.0,
-            self.ci_weight.1,
-            self.ci_intercept.0,
-            self.ci_intercept.1,
-            self.ci_pr_mm.0,
-            self.ci_pr_mm.1,
-            self.ci_pr_um.0,
-            self.ci_pr_um.1,
-            self.ci_pr_uu.0,
-            self.ci_pr_uu.1,
-            
-
-        );
-
+        let content = format!("{}", self);
         file.write_all(content.as_bytes())
     }
 }

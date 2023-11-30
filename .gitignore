@@ -3,3 +3,8 @@
 .env
 /alphabeta/target
 /data/output_metaplot/*/*
+/data/methylome_full/gene
+/data/methylome_full/upstream
+/data/methylome_full/downstream
+/data/methylome_full/distribution*
+

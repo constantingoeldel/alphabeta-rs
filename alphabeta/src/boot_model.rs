@@ -8,6 +8,7 @@ use ndarray::{array, s, Array1, Array2, Axis};
 
 use crate::{
     analysis::{Analysis, RawAnalysis},
+    config::get,
     optimizer::{Model, PredictedDivergence, Problem, Residuals},
     plot, *,
 };
@@ -21,10 +22,8 @@ pub fn run(
     p0uu: f64,
     eqp: f64,
     eqp_weight: f64,
-    _pb: Option<&ProgressBar>,
 ) -> Return<Analysis> {
-    // let alternative_pb = Progress::new("BootModel", n_boot).0;
-    // let pb = pb.unwrap_or(&alternative_pb);
+    let pb = progress_bars::Progress::new("BootModel", config::get().iterations);
     let n_boot = config::get().iterations;
     let p0mm = 1.0 - p0uu;
     let p0um = 0.0;
@@ -93,13 +92,13 @@ pub fn run(
                 .push(Axis(0), r.view())
                 .expect("Insertion of bootstrap results failed");
             // let c = counter.fetch_add(1, Ordering::Relaxed);
-            // pb.inc(1);
+            pb.inc(1);
             //  println!("Progress: {}%", ((c * 100) as f32 / (n_boot) as f32));
             Ok(())
         })
         .collect();
     res?;
-    // pb.finish();
+    pb.finish();
 
     let results = results.into_inner().unwrap();
 

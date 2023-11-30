@@ -1,4 +1,4 @@
-use std::{fs, sync::Mutex};
+use std::{fs, io::Write, sync::Mutex};
 
 use crate::{
     config::set,
@@ -165,15 +165,24 @@ fn alphabeta_multiple(args: Metaprofile, max_gene_length: u32, distribution: Vec
     } else {
         (3 * 100) / args.window_step
     };
-
-    let (multi, pb) = progress_bars::multi(total_steps as u64);
-
+    let mut step = 1;
+    let start_time = std::time::Instant::now();
     // Create an empty 3D array to store the raw results
     for region in regions {
         let max = if args.absolute { region.1 } else { 100 };
 
         for window in (0..max).step_by(args.window_step as usize) {
-            pb.inc(1);
+            step += 1;
+            let now = std::time::Instant::now();
+            let elapsed = now.duration_since(start_time);
+            let eta = elapsed.as_secs() as f32 / step as f32 * (total_steps - step) as f32;
+            print!("\x1B[2J\x1B[1;1H"); // Clear the screen (I have no idea how this works)
+            println!(
+                "Running AlphaBeta for window {} out of {}. Estimated time left: {} seconds",
+                step,
+                total_steps,
+                eta.floor()
+            );
 
             let args = alphabeta::AlphaBeta::default(
                 args.output_dir
@@ -182,16 +191,15 @@ fn alphabeta_multiple(args: Metaprofile, max_gene_length: u32, distribution: Vec
                 args.iterations,
             );
 
-            let alphabeta_result = alphabeta::run(args, &multi);
+            let alphabeta_result = alphabeta::run(args);
             match alphabeta_result {
-                Err(e) => println!("Error: {e}"),
+                Err(e) => println!("Error in {} window {window}: {e}", region.0),
                 Ok((model, analysis, _, obs_meth_lvl)) => {
                     results.push((model, analysis, region.0.clone(), obs_meth_lvl));
                 }
             }
         }
     }
-    pb.finish();
     let mut print = String::from("run;window;cg_count;region;alpha;beta;1/2*(alpha+beta);pred_steady_state;obs_steady_state;sd_alpha;sd_beta;ci_alpha_0.025;ci_alpha_0.975;ci_beta_0.025;ci_beta_0.975\n");
     for (i, ((model, analysis, region, obs_meth_lvl), d)) in
         results.iter().zip(distribution.iter()).enumerate()
