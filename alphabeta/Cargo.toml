@@ -32,7 +32,7 @@ itertools = "0.12.0"
 plotters = "0.3.5"
 ndarray-stats = "0.5.1"
 noisy_float = "0.2.0"
-pedigree ={ path = "../pedigree" }
-methylome ={ path = "../methylome" }
-progress_bars ={ path = "../progress_bars" }
+pedigree ={ path = "../pedigree", version = "*" }
+methylome ={ path = "../methylome", version = "*"}
+progress_bars ={ path = "../progress_bars" , version = "*"}
 
