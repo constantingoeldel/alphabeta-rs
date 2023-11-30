@@ -1,10 +1,16 @@
-use std::{fmt::Write, time::Duration};
 use std::ops::Deref;
+use std::{fmt::Write, time::Duration};
 
 use indicatif::{HumanDuration, ProgressState, ProgressStyle};
 pub use indicatif::{MultiProgress, ProgressBar};
 
 pub struct Progress(pub ProgressBar);
+
+pub fn progress_style() -> ProgressStyle {
+    ProgressStyle::with_template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}")
+        .unwrap()
+        .progress_chars("##-")
+}
 
 impl Progress {
     pub fn new(name: &'static str, iterations: usize) -> Self {

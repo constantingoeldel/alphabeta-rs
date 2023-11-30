@@ -9,19 +9,17 @@ use crate::{
     *,
 };
 use alphabeta::Analysis;
-use indicatif::MultiProgress;
 use itertools::Itertools;
 // use methylome::genes::{Gene, Genome};
 // use methylome::methylation_site::Chromosome;
 
 use methylome::{steady_state, Chromosome};
+use progress_bars::MultiProgress;
 use rayon::prelude::*;
 
 pub fn extract(args: config::Metaprofile) -> Return<()> {
     set(args.clone());
     let start = std::time::Instant::now();
-
-    let args = args;
 
     let methylome_files = load_methylome(&args.methylome)?;
     let annotation_lines = lines_from_file(&args.genome)?;

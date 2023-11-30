@@ -16,7 +16,7 @@ dependencies = [
  "argmin-math",
  "blas-src",
  "clap",
- "itertools",
+ "itertools 0.12.0",
  "methylome",
  "ndarray",
  "ndarray-stats",
@@ -877,6 +877,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25db6b064527c5d482d0423354fcd07a89a2dfe07b67892e62411946db7f07b0"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1009,8 +1018,7 @@ dependencies = [
  "argmin-math",
  "blas-src",
  "clap",
- "indicatif",
- "itertools",
+ "itertools 0.10.5",
  "methylome",
  "ndarray",
  "ndarray-npy",
@@ -1029,10 +1037,7 @@ dependencies = [
 name = "methylome"
 version = "0.2.1"
 dependencies = [
- "blas-src",
- "itertools",
- "ndarray",
- "openblas-src",
+ "itertools 0.10.5",
  "thiserror",
 ]
 
@@ -1146,7 +1151,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af5a8477ac96877b5bd1fd67e0c28736c12943aba24eda92b127e036b0c8f400"
 dependencies = [
  "indexmap 1.9.3",
- "itertools",
+ "itertools 0.10.5",
  "ndarray",
  "noisy_float",
  "num-integer",
@@ -1335,10 +1340,8 @@ dependencies = [
 name = "pedigree"
 version = "0.1.0"
 dependencies = [
- "blas-src",
  "methylome",
  "ndarray",
- "openblas-src",
  "petgraph",
  "thiserror",
 ]

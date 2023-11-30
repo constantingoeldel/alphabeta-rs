@@ -4,9 +4,9 @@ use std::{
     io::{self, BufRead, Write},
 };
 
-use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use itertools::Itertools;
 use methylome::{MethylationSite, Strand};
+use progress_bars::{MultiProgress, ProgressBar};
 
 use crate::{
     config::{get, Metaprofile as Args},
@@ -250,9 +250,11 @@ impl Windows {
     }
 
     pub fn save(&self, args: Args, filename: String) -> Return<()> {
-        for windows in [(&self.upstream, "upstream"),
+        for windows in [
+            (&self.upstream, "upstream"),
             (&self.gene, "gene"),
-            (&self.downstream, "downstream")]
+            (&self.downstream, "downstream"),
+        ]
         .iter()
         {
             for (window, cg_sites) in windows.0.iter().enumerate() {
@@ -300,14 +302,9 @@ impl Windows {
         let n_lines = methylome_file.metadata().unwrap().len() / BYTES_PER_LINE;
 
         // Progress bars
-        let sty = ProgressStyle::with_template(
-            "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
-        )
-        .unwrap()
-        .progress_chars("##-");
 
         let pb = bars.add(ProgressBar::new(n_lines));
-        pb.set_style(sty);
+        pb.set_style(progress_bars::progress_style());
         pb.set_message(file_name);
 
         let lines = io::BufReader::new(methylome_file).lines();
@@ -356,7 +353,7 @@ impl Display for Windows {
 
 #[cfg(test)]
 mod test {
-    
+
     use crate::config::Metaprofile as Args;
     #[test]
     fn new_absolute() {

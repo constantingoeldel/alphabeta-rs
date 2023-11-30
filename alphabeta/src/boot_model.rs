@@ -1,7 +1,7 @@
 use progress_bars::ProgressBar;
 use rand::{distributions::Slice, thread_rng, Rng};
 use rayon::prelude::*;
-use std::{sync::Mutex};
+use std::sync::Mutex;
 
 use argmin::{core::Executor, solver::neldermead::NelderMead};
 use ndarray::{array, s, Array1, Array2, Axis};
