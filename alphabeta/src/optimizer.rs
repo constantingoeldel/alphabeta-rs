@@ -5,12 +5,12 @@ use argmin::core::CostFunction;
 use ndarray::Array1;
 use rand::{distributions::Uniform, thread_rng, Rng};
 
-use crate::divergence::divergence;
-use pedigree::Pedigree;
+use crate::divergence::{divergence, Divergence};
+use pedigree::{DivergenceBetweenSamples, Pedigree};
 
 #[derive(Clone, Debug)]
 pub struct Problem {
-    pub pedigree: Pedigree,
+    pub divergence: DivergenceBetweenSamples,
     pub eqp_weight: f64,
     pub eqp: f64,
     pub p_mm: f64,
@@ -147,14 +147,14 @@ impl Model {
 
 impl Default for Problem {
     fn default() -> Self {
-        let pedigree = Pedigree::from_file("./data/pedigree.txt");
+        let divergence = Pedigree::divergence_from_file("./data/pedigree.txt");
         let p_uu = 0.75;
         let p_mm = 1.0 - p_uu;
         let p_um = 0.0;
         let eqp = 0.5;
         let eqp_weight = 0.7;
         Problem {
-            pedigree,
+            divergence,
             p_mm,
             p_um,
             p_uu,

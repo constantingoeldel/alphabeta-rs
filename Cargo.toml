@@ -5,5 +5,5 @@ members = [
     "alphabeta",
     "metaprofile",
     "pedigree",
-    "methylome"
-]
+    "methylome", 
+    "pls"]

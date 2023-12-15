@@ -1,15 +1,15 @@
 use std::sync::Mutex;
 
-use crate::divergence::divergence;
+use crate::divergence::{divergence, Divergence};
 use crate::optimizer::{Model, PredictedDivergence, Problem, Residuals};
 use crate::{config, Error, Return};
 use argmin::{core::Executor, solver::neldermead::NelderMead};
-use pedigree::Pedigree;
+use pedigree::{DivergenceBetweenSamples, Pedigree};
 
 use rayon::prelude::*;
 
 pub fn run(
-    pedigree: &Pedigree,
+    sample_divergence: &DivergenceBetweenSamples,
     p0uu: f64,
     eqp: f64,
     eqp_weight: f64,
@@ -36,7 +36,7 @@ pub fn run(
             // Draw random starting values
 
             let problem = Problem {
-                pedigree: pedigree.clone(),
+                divergence: sample_divergence.clone(),
                 eqp_weight,
                 eqp,
                 p_mm: p0mm,
@@ -81,12 +81,14 @@ pub fn run(
     res?;
     pb.finish();
 
-    let mut results = results.into_inner().unwrap();
+    let mut results = results.into_inner().unwryap();
     // Calculating the least squares error for all results and selecting the best one
     results.sort_by(|a, b| {
-        let pedigree = pedigree.clone();
-        let divergence_a = divergence(&pedigree, p0mm, p0um, p0uu, a.alpha, a.beta, a.weight);
-        let divergence_b = divergence(&pedigree, p0mm, p0um, p0uu, b.alpha, b.beta, b.weight);
+        let divergence = sample_divergence.clone();
+        let divergence_a =
+            Divergence::calc(&divergence, p0mm, p0um, p0uu, a.alpha, a.beta, a.weight);
+        let divergence_b =
+            Divergence::calc(&divergence, p0mm, p0um, p0uu, b.alpha, b.beta, b.weight);
 
         let lse_a = divergence_a
             .dt1t2
@@ -110,7 +112,7 @@ pub fn run(
 
     let best: &Model = &results[0];
 
-    let divergence = divergence(
+    let divergence = Divergence::calc(
         pedigree,
         p0mm,
         p0um,

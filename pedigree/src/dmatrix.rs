@@ -1,8 +1,8 @@
-use petgraph::{algo::astar, prelude::UnGraph};
+use petgraph::{algo::astar, prelude::UnGraph, visit::Dfs};
 
 use ndarray::{array, Array2, Axis};
 
-use crate::{Edge, Node, Pedigree};
+use crate::{DivergenceBetweenSamples, Node, Pedigree};
 
 #[derive(Debug)]
 pub struct DMatrix(Array2<f64>);
@@ -24,32 +24,25 @@ impl DMatrix {
         for (i, first) in nodes.iter().enumerate() {
             for (j, second) in nodes.iter().skip(i + 1).enumerate() {
                 pb.inc(1);
-                assert!(first.sites.as_ref().is_some());
-                assert!(second.sites.as_ref().is_some());
-                if first.sites.as_ref().unwrap().len() != second.sites.as_ref().unwrap().len() {
+
+                if first.sites.len() != second.sites.len() {
                     println!(
                         "Lengths do not match, all bets are off: {} vs {}",
-                        first.sites.as_ref().unwrap().len(),
-                        second.sites.as_ref().unwrap().len()
+                        first.sites.len(),
+                        second.sites.len()
                     );
                     divergences[[i, j]] = 0.0;
                     continue;
                 }
-                assert_eq!(
-                    first.sites.as_ref().unwrap().len(),
-                    second.sites.as_ref().unwrap().len()
-                );
 
                 let mut divergence = 0;
                 let mut compared_sites = 0;
 
                 // Go over all sites in the first sample
                 // IMPORTANT: It is assumed that the same sites are included in the datasets and that the sites are sorted by position
-                for (k, f) in first.sites.as_ref().unwrap().iter().enumerate() {
+                for (k, f) in first.sites.iter().enumerate() {
                     let s = second
                         .sites
-                        .as_ref()
-                        .unwrap()
                         .get(k)
                         .expect("Partner methylation site must exists");
 
@@ -70,32 +63,32 @@ impl DMatrix {
         DMatrix(divergences)
     }
     /// Convert graph of divergences to pedigree
-    pub fn convert(&self, nodes: &[Node], edges: &[Edge]) -> Pedigree {
-        let e = edges
-            .iter()
-            .map(|e| {
-                (
-                    e.from.id,
-                    e.to.id,
-                    e.from.generation.abs_diff(e.to.generation) as usize,
-                    // self.0.get((e.from.id, e.to.id)).unwrap(),
-                )
-            })
-            .collect::<Vec<(usize, usize, usize)>>();
+    pub fn convert(&self, pedigree: Pedigree) -> DivergenceBetweenSamples {
+        // let e = edges
+        //     .iter()
+        //     .map(|e| {
+        //         (
+        //             e.from.id,
+        //             e.to.id,
+        //             e.from.generation.abs_diff(e.to.generation) as usize,
+        //             // self.0.get((e.from.id, e.to.id)).unwrap(),
+        //         )
+        //     })
+        //     .collect::<Vec<(usize, usize, usize)>>();
 
-        let graph = UnGraph::<usize, usize, usize>::from_edges(e);
+        // let graph = UnGraph::<usize, usize, usize>::from_edges(e);
 
-        let mut pedigree = Pedigree(Array2::<f64>::default((0, 4)));
+        let mut divergence = Array2::<f64>::default((0, 4));
 
-        for (i, source) in nodes.iter().enumerate() {
-            for (j, target) in nodes.iter().skip(i + 1).enumerate() {
+        for (i, source) in pedigree.node_weights().enumerate() {
+            for (j, target) in pedigree.node_weights().skip(i + 1).enumerate() {
                 if source.id == target.id {
                     // Explicitly skip self-pairs
                     continue;
                 }
 
                 let path = astar(
-                    &graph,
+                    &*pedigree,
                     source.id.into(),
                     |finish| finish == target.id.into(),
                     |e| *e.weight(),
@@ -133,16 +126,15 @@ impl DMatrix {
                         let div = self.0.get((i, j)).unwrap().to_owned();
 
                         assert_eq!(distance as f64, t1 - t0 + t2 - t0);
-                        pedigree
-                            .0
+                        divergence
                             .push(Axis(0), array![t0, t1, t2, div].view())
-                            .expect("Could not insert row into pedigree");
+                            .expect("Could not insert row into divergence list");
                     }
                 }
             }
         }
 
-        pedigree
+        divergence
     }
 }
 

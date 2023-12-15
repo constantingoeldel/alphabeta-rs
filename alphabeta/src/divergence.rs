@@ -29,88 +29,89 @@ pub fn matrix_power(matrix: &Array2<f64>, power: i8) -> Array2<f64> {
     }
     result
 }
+impl Divergence {
+    pub fn calc(
+        pedigree: &Pedigree,
+        p_mm: f64,
+        _p_um: f64,
+        p_uu: f64,
+        alpha: f64,
+        beta: f64,
+        weight: f64,
+    ) -> Self {
+        // State probabilities at G0; first element = PrUU, second element = PrUM, third element = PrMM ### Is the second field correct?
 
-pub fn divergence(
-    pedigree: &Pedigree,
-    p_mm: f64,
-    _p_um: f64,
-    p_uu: f64,
-    alpha: f64,
-    beta: f64,
-    weight: f64,
-) -> Divergence {
-    // State probabilities at G0; first element = PrUU, second element = PrUM, third element = PrMM ### Is the second field correct?
+        let sv_gzero = array![p_uu, (weight) * p_mm, (1.0 - weight) * p_mm];
 
-    let sv_gzero = array![p_uu, (weight) * p_mm, (1.0 - weight) * p_mm];
+        // 	Defining the generation (or transition) matrix
+        let genmatrix = genmatrix(alpha, beta);
 
-    // 	Defining the generation (or transition) matrix
-    let genmatrix = genmatrix(alpha, beta);
+        let mut dt1t2 = Vec::new();
+        // 	Calculating theoretical divergence for every observed pair in 'data/data/pedigree.txt'
+        for p in pedigree.rows() {
+            let (t0, t1, t2) = (p[0] as i8, p[1] as i8, p[2] as i8);
 
-    let mut dt1t2 = Vec::new();
-    // 	Calculating theoretical divergence for every observed pair in 'data/data/pedigree.txt'
-    for p in pedigree.rows() {
-        let (t0, t1, t2) = (p[0] as i8, p[1] as i8, p[2] as i8);
+            // 			Define state vectors for t1,t2 and t0 from pedigree using matrix multiplications from library(expm)
+            let svt0 = sv_gzero.t().dot(&matrix_power(&genmatrix, t0));
 
-        // 			Define state vectors for t1,t2 and t0 from pedigree using matrix multiplications from library(expm)
-        let svt0 = sv_gzero.t().dot(&matrix_power(&genmatrix, t0));
+            let t1t0 = matrix_power(&genmatrix, t1 - t0);
+            let t2t0 = matrix_power(&genmatrix, t2 - t0);
 
-        let t1t0 = matrix_power(&genmatrix, t1 - t0);
-        let t2t0 = matrix_power(&genmatrix, t2 - t0);
+            let svt1_mm = t1t0.row(2);
+            let svt2_mm = t2t0.row(2);
+            let svt1_um = t1t0.row(1);
+            let svt2_um = t2t0.row(1);
+            let svt1_uu = t1t0.row(0);
+            let svt2_uu = t2t0.row(0);
 
-        let svt1_mm = t1t0.row(2);
-        let svt2_mm = t2t0.row(2);
-        let svt1_um = t1t0.row(1);
-        let svt2_um = t2t0.row(1);
-        let svt1_uu = t1t0.row(0);
-        let svt2_uu = t2t0.row(0);
+            // Conditional divergences
+            let dt1t2_mm = 0.5_f64
+                * (svt1_mm[0] * svt2_mm[1]
+                    + svt1_mm[1] * svt2_mm[0]
+                    + svt1_mm[1] * svt2_mm[2]
+                    + svt1_mm[2] * svt2_mm[1])
+                + (svt1_mm[0] * svt2_mm[2] + svt1_mm[2] * svt2_mm[0]);
 
-        // Conditional divergences
-        let dt1t2_mm = 0.5_f64
-            * (svt1_mm[0] * svt2_mm[1]
-                + svt1_mm[1] * svt2_mm[0]
-                + svt1_mm[1] * svt2_mm[2]
-                + svt1_mm[2] * svt2_mm[1])
-            + (svt1_mm[0] * svt2_mm[2] + svt1_mm[2] * svt2_mm[0]);
+            let dt1t2_um = 0.5_f64
+                * ((svt1_um[0]) * svt2_um[1]
+                    + svt1_um[1] * svt2_um[0]
+                    + svt1_um[1] * svt2_um[2]
+                    + svt1_um[2] * svt2_um[1])
+                + (svt1_um[0] * svt2_um[2] + svt1_um[2] * svt2_um[0]);
 
-        let dt1t2_um = 0.5_f64
-            * ((svt1_um[0]) * svt2_um[1]
-                + svt1_um[1] * svt2_um[0]
-                + svt1_um[1] * svt2_um[2]
-                + svt1_um[2] * svt2_um[1])
-            + (svt1_um[0] * svt2_um[2] + svt1_um[2] * svt2_um[0]);
+            let dt1t2_uu = 0.5_f64
+                * ((svt1_uu[0]) * svt2_uu[1]
+                    + svt1_uu[1] * svt2_uu[0]
+                    + svt1_uu[1] * svt2_uu[2]
+                    + svt1_uu[2] * svt2_uu[1])
+                + (svt1_uu[0] * svt2_uu[2] + svt1_uu[2] * svt2_uu[0]);
 
-        let dt1t2_uu = 0.5_f64
-            * ((svt1_uu[0]) * svt2_uu[1]
-                + svt1_uu[1] * svt2_uu[0]
-                + svt1_uu[1] * svt2_uu[2]
-                + svt1_uu[2] * svt2_uu[1])
-            + (svt1_uu[0] * svt2_uu[2] + svt1_uu[2] * svt2_uu[0]);
-
-        dt1t2.push(svt0[0] * (dt1t2_uu) + svt0[1] * (dt1t2_um) + svt0[2] * (dt1t2_mm));
+            dt1t2.push(svt0[0] * (dt1t2_uu) + svt0[1] * (dt1t2_um) + svt0[2] * (dt1t2_mm));
+        }
+        // Pr(UU) at equilibrium given alpha and beta
+        let p_uu = p_uu_est(alpha, beta);
+        Divergence { dt1t2, p_uu }
     }
-    // Pr(UU) at equilibrium given alpha and beta
-    let p_uu = p_uu_est(alpha, beta);
-    Divergence { dt1t2, p_uu }
-}
 
-pub fn genmatrix(alpha: f64, beta: f64) -> Array2<f64> {
-    array![
-        [
-            (1.0 - alpha).powi(2),
-            2.0 * (1.0 - alpha) * alpha,
-            alpha.powi(2)
-        ],
-        [
-            0.25 * (beta + 1.0 - alpha).powi(2),
-            0.5 * (beta + 1.0 - alpha) * (alpha + 1.0 - beta),
-            0.25 * (alpha + 1.0 - beta).powi(2)
-        ],
-        [
-            beta.powi(2),
-            2.0 * (1.0 - beta) * beta,
-            (1.0 - beta).powi(2)
+    fn genmatrix(alpha: f64, beta: f64) -> Array2<f64> {
+        array![
+            [
+                (1.0 - alpha).powi(2),
+                2.0 * (1.0 - alpha) * alpha,
+                alpha.powi(2)
+            ],
+            [
+                0.25 * (beta + 1.0 - alpha).powi(2),
+                0.5 * (beta + 1.0 - alpha) * (alpha + 1.0 - beta),
+                0.25 * (alpha + 1.0 - beta).powi(2)
+            ],
+            [
+                beta.powi(2),
+                2.0 * (1.0 - beta) * beta,
+                (1.0 - beta).powi(2)
+            ]
         ]
-    ]
+    }
 }
 
 #[cfg(test)]

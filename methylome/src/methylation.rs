@@ -113,7 +113,7 @@ impl MethylationSite {
     /// Some files provide the trinucleotide, others don't, so there are two versions.
     ///
     /// If you need to parse a different format, simply add a new function and submit a pull request.
-    pub fn from_methylome_file_line(s: &str, invert_strand: bool) -> Option<Self> {
+    pub fn from_methylome_file_line(s: &str) -> Option<Self> {
         let first_format = |s: &str| {
             s.split('\t')
                 .collect_tuple()
@@ -134,7 +134,7 @@ impl MethylationSite {
                             chromosome: chromosome.try_into()?,
                             start: location.parse::<u32>()?,
                             end: location.parse::<u32>()? + 1,
-                            strand: if (strand == "+") ^ invert_strand {
+                            strand: if strand == "+" {
                                 Strand::Sense
                             } else {
                                 Strand::Antisense
@@ -178,7 +178,7 @@ impl MethylationSite {
                             chromosome: chromosome.try_into()?,
                             start: location.parse::<u32>()?,
                             end: location.parse::<u32>()? + 1,
-                            strand: if (strand == "+") ^ invert_strand {
+                            strand: if strand == "+" {
                                 Strand::Sense
                             } else {
                                 Strand::Antisense
@@ -223,7 +223,7 @@ impl MethylationSite {
                             chromosome: chromosome.try_into()?,
                             start: first_nucleotide.parse::<u32>()?,
                             end: second_nucleotide.parse::<u32>()?,
-                            strand: if (strand == "+") ^ invert_strand {
+                            strand: if strand == "+" {
                                 Strand::Sense
                             } else {
                                 Strand::Antisense
@@ -353,14 +353,14 @@ mod tests {
     #[test]
     fn test_instantiate_from_methylome_file_line() {
         let line = "1	23151	+	CG	0	8	0.9999	U	0.0025";
-        let cg = MethylationSite::from_methylome_file_line(line, false).unwrap();
+        let cg = MethylationSite::from_methylome_file_line(line).unwrap();
         assert_eq!(cg.chromosome, Chromosome::Numbered(1));
     }
 
     #[test]
     fn test_bigwig_format() {
         let line = "chr1	7	11	3";
-        let cg = MethylationSite::from_methylome_file_line(line, true).unwrap();
+        let cg = MethylationSite::from_methylome_file_line(line).unwrap();
         assert_eq!(cg.chromosome, Chromosome::Numbered(1));
         assert_eq!(cg.start, 7);
         assert_eq!(cg.end, 11);
@@ -369,21 +369,21 @@ mod tests {
     #[test]
     fn test_instantiate_from_methylome_file_line_invalid_line() {
         let line = "1	23151	+	CG	0	8	0.9999	";
-        let cg = MethylationSite::from_methylome_file_line(line, false);
+        let cg = MethylationSite::from_methylome_file_line(line);
         assert!(cg.is_none());
     }
 
     #[test]
     fn test_cmt3_line_not_cg() {
         let line = "1	25600	+	CHH	0	94	0.9999	U	0.0043	CAT";
-        let site = MethylationSite::from_methylome_file_line(line, false);
+        let site = MethylationSite::from_methylome_file_line(line);
         assert!(site.is_none());
     }
 
     #[test]
     fn test_instantiate_from_methylome_file_line_invalid_chromosome() {
         let line = "X	23151	+	CG	0	8	0.9999	U	0.0025";
-        let cg = MethylationSite::from_methylome_file_line(line, false);
+        let cg = MethylationSite::from_methylome_file_line(line);
         assert!(cg.is_none());
     }
 
@@ -392,7 +392,7 @@ mod tests {
         let file = read_to_string("data/heterogenity_score_files.txt").unwrap();
         let sites: Vec<MethylationSite> = file
             .split('\n')
-            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s))
             .collect();
         assert_eq!(sites.get(0).unwrap().start, 809);
         assert_eq!(sites.len(), 509825);
@@ -403,28 +403,28 @@ mod tests {
         let file = read_to_string("data/methylome/G0.txt").unwrap();
         let sites: Vec<_> = file
             .split('\n')
-            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s))
             .collect();
         assert_eq!(sites.len(), 500); // Only 500 of the > 2800 sites are CG sites
 
         let file = read_to_string("data/methylome/G1_2.txt").unwrap();
         let sites: Vec<MethylationSite> = file
             .split('\n')
-            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s))
             .collect();
         assert_eq!(sites.len(), 500);
 
         let file = read_to_string("data/methylome/G4_2.txt").unwrap();
         let sites: Vec<MethylationSite> = file
             .split('\n')
-            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s))
             .collect();
         assert_eq!(sites.len(), 500);
 
         let file = read_to_string("data/methylome/G4_8.txt").unwrap();
         let sites: Vec<MethylationSite> = file
             .split('\n')
-            .filter_map(|s| MethylationSite::from_methylome_file_line(s, false))
+            .filter_map(|s| MethylationSite::from_methylome_file_line(s))
             .collect();
         assert_eq!(sites.len(), 500);
     }

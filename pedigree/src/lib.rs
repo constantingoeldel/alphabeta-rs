@@ -1,5 +1,7 @@
 mod dmatrix;
 
+use petgraph::{data::FromElements, graph::DiGraph, visit::IntoEdges};
+
 use std::{
     fs::{self, File},
     io::{BufRead, BufReader, Write},
@@ -15,22 +17,31 @@ pub type Return<T> = std::result::Result<T, Error>;
 use methylome::{MethylationSite, MethylationStatus};
 
 use ndarray::{Array2, ArrayView};
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct Node {
     id: usize,
-    file: PathBuf,
     name: String,
     generation: u32,
     meth: bool,
-    proportion_unmethylated: Option<f64>,
-    rc_meth_lvl: Option<f64>,
-    sites: Option<Vec<MethylationSite>>, // Might lead to memory issues if there are too many sites. But it makes lookup really fast.
+    sites: Vec<MethylationSite>, // Might lead to memory issues if there are too many sites. But it makes lookup really fast.
 }
-#[derive(Debug)]
-struct Edge<'a> {
-    from: &'a Node,
-    to: &'a Node,
+
+impl Node {
+    fn proportion_unmethylated(&self) -> f64 {
+        let p_uu_count = self
+            .sites
+            .iter()
+            .filter(|s| s.status == MethylationStatus::U)
+            .count();
+
+        p_uu_count as f64 / self.sites.len() as f64
+    }
+
+    fn avg_meth_lvl(&self) -> f64 {
+        self.sites.iter().map(|s| s.meth_lvl).sum::<f64>() / self.sites.len() as f64
+    }
 }
+
 /// A pedigree describes the divergence bewteen any two samples in a population.
 /// It's a matrix with four columns, containing the following information:
 ///
@@ -43,9 +54,14 @@ struct Edge<'a> {
 /// d: The divergence between the two samples.
 ///
 /// The length of the pedigree is the number of possible pairs of samples, for which methlyation data is available => n * (n - 1) / 2
-#[derive(Clone, Debug)]
-pub struct Pedigree(Array2<f64>);
+pub type DivergenceBetweenSamples = Array2<f64>;
 type UnmethylatedLevel = f64;
+
+/// Directed Graph containing the pedigree
+///
+/// Edge weights are the generational time between two samples, "1" by default
+#[derive(Clone, Debug)]
+pub struct Pedigree(DiGraph<Node, u8>);
 
 impl Pedigree {
     /// Read a pedigree from a file.
@@ -62,8 +78,8 @@ impl Pedigree {
     ///
     /// The first line of the file is ignored.
     /// I chose not to return a result, as this function is meant to statically read a file and therefore it is preferable to panic if the file is not found or parsing errors occur.
-    pub fn from_file(filename: &str) -> Self {
-        let mut pedigree = Array2::<f64>::zeros((0, 4));
+    pub fn divergence_from_file(filename: &str) -> DivergenceBetweenSamples {
+        let mut divergence = Array2::<f64>::zeros((0, 4));
         let file = std::fs::read_to_string(filename).unwrap();
         file.split('\n').skip(1).for_each(|line| {
             if line.is_empty() {
@@ -76,130 +92,133 @@ impl Pedigree {
                 entries.next().unwrap().parse::<f64>().unwrap(),
                 entries.next().unwrap().parse::<f64>().unwrap(),
             ];
-            pedigree.push_row(ArrayView::from(&row)).unwrap();
+            divergence.push_row(ArrayView::from(&row)).unwrap();
         });
-        Pedigree(pedigree)
+        divergence
     }
 
-    pub fn to_file<P>(&self, path: P) -> std::io::Result<()>
+    pub fn divergence_to_file<P>(&self, path: P, posterior_max_filter: f64) -> std::io::Result<()>
     where
         P: AsRef<Path> + std::fmt::Debug,
     {
-        println!("Writing pedigree to file: {:?}", path);
+        println!("Writing divergence of pedigree to file: {:?}", path);
         let mut file = File::create(path)?;
         let mut content = String::new();
         content += "time0\ttime1\ttime2\tD.value\n";
-        for row in self.rows() {
+        for row in self.divergence(posterior_max_filter).rows() {
             content.push_str(&format!("{}\t{}\t{}\t{}\n", row[0], row[1], row[2], row[3]));
         }
         file.write_all(content.as_bytes())
     }
-    pub fn build<P>(
-        nodelist: P,
-        edgelist: P,
-        posterior_max_filter: f64,
-    ) -> Return<(Self, UnmethylatedLevel)>
+
+    pub fn divergence(&self, posterior_max_filter: f64) -> DivergenceBetweenSamples {
+        todo!();
+
+        // let divergence = DMatrix::from(self.nodes(), posterior_max_filter);
+        // divergence.convert(self.nodes(), self.edges())
+    }
+
+    pub fn avg_umeth_lvl(&self) -> UnmethylatedLevel {
+        self.node_weights()
+            .map(|n| 1.0 - n.rc_meth_lvl.unwrap())
+            .sum::<f64>()
+            / self.node_count() as f64
+    }
+
+    pub fn build<P>(nodelist: P, edgelist: P, posterior_max_filter: f64) -> Return<Self>
     where
         P: AsRef<Path>,
     {
+        let mut p = DiGraph::new();
         let nodes = fs::read_to_string(nodelist)?;
         let edges = fs::read_to_string(edgelist)?;
-        let nodes: Vec<Node> = nodes
-            .split(['\n', '\r'])
-            .skip(1)
-            .enumerate()
-            .filter_map(|(i, line)| {
-                let mut entries = line.split([',', '\t', ' ']);
-                Some(Node {
-                    id: i,
-                    file: PathBuf::from(entries.next()?),
-                    name: String::from(entries.next()?),
-                    generation: entries.next()?.parse::<u32>().ok()?,
-                    meth: entries.next()? == "Y",
-                    proportion_unmethylated: None,
-                    rc_meth_lvl: None,
-                    sites: None,
-                })
-            })
-            .collect();
-        if nodes.is_empty() {
-            return Err(Error::NodeParsing);
-        }
-
-        let edges: Vec<Edge> = edges
-            .split(['\n', '\r'])
-            .skip(1)
-            .filter_map(|line| {
-                let mut entries = line.split(['\t', ' ', ',']);
-                let from = entries.next()?;
-                let to = entries.next()?;
-                Some(Edge {
-                    from: nodes.iter().find(|n| n.name == from)?,
-                    to: nodes.iter().find(|n| n.name == to)?,
-                })
-            })
-            .collect();
-
-        let mut nodes: Vec<Node> = nodes.iter().filter(|n| n.meth).cloned().collect();
-
         let pb = progress_bars::Progress::new("Loading Methylation Data", nodes.len());
-
-        for node in nodes.iter_mut() {
+        for (i, line) in nodes.split(['\n', '\r']).skip(1).enumerate() {
             pb.inc(1);
-            // let mut file = PathBuf::from(nodelist.parent().unwrap());
-            // file.push(&node.file);
-            let f = File::open(&node.file).map_err(Error::NodeFile)?;
-            let reader = BufReader::new(f);
+            let mut entries = line.split([',', '\t', ' ']);
+            let file = entries.next().ok_or(Error::NoFile(line.into()))?;
+            let name = entries.next().ok_or(Error::NoName(line.into()))?;
+            let generation = entries
+                .next()
+                .ok_or(Error::NoGeneration(line.into()))?
+                .parse::<u32>()
+                .map_err(|_| Error::GenerationUnparseable(line.into()))?;
+            let meth = entries.next().ok_or(Error::NoMethylation(line.into()))?;
+            let meth = meth == "Y";
 
-            let mut sites = Vec::new();
+            if meth {
+                let file = if file.starts_with("/") {
+                    file.into()
+                } else {
+                    let mut file = PathBuf::from(nodelist.as_ref().parent().unwrap());
+                    file.push(file);
+                    file
+                };
 
-            for line in reader.lines() {
-                let line = line.expect("Could not read line");
-                let methylation = MethylationSite::from_methylome_file_line(&line, false);
-
-                if methylation.is_none() {
-                    continue;
+                if !file.exists() {
+                    return Err(Error::MethylationFile(file));
                 }
-
-                let methylation = methylation.unwrap();
-                sites.push(methylation);
             }
 
-            let valid_sites: Vec<&MethylationSite> = sites
-                .iter()
-                .filter(|s| s.posteriormax >= posterior_max_filter)
-                .collect();
+            let node = Node {
+                id: i,
+                name: name.into(),
+                generation,
+                meth,
 
-            let p_uu_count = valid_sites
-                .iter()
-                .filter(|s| s.status == MethylationStatus::U)
-                .count();
+                sites: if meth {
+                    let f = File::open(file).map_err(Error::NodeFile)?;
+                    let reader = BufReader::new(f);
+                    reader
+                        .lines()
+                        .filter_map(|l| {
+                            MethylationSite::from_methylome_file_line(
+                                &l.expect("Could not read methylation file line"),
+                            )
+                        })
+                        .collect::<Vec<MethylationSite>>()
+                } else {
+                    Vec::new()
+                },
+            };
 
-            let p_uu_share = p_uu_count as f64 / valid_sites.len() as f64;
-
-            let avg_meth_lvl =
-                valid_sites.iter().map(|s| s.meth_lvl).sum::<f64>() / valid_sites.len() as f64;
-
-            node.proportion_unmethylated = Some(p_uu_share);
-            node.rc_meth_lvl = Some(avg_meth_lvl);
-            node.sites = Some(sites);
+            p.add_node(node);
         }
         pb.finish();
 
-        let tmp0uu_meth_lvl = nodes
-            .iter()
-            .map(|n| 1.0 - n.rc_meth_lvl.unwrap())
-            .sum::<f64>()
-            / nodes.len() as f64;
+        for line in edges.split(['\n', '\r']).skip(1) {
+            let mut entries = line.split(['\t', ' ', ',']);
+            let from = entries.next().ok_or(Error::NoFrom)?;
+            let to = entries.next().ok_or(Error::NoTo)?;
+            let dt = entries
+                .next()
+                .map_or(1, |t| t.parse().expect("Could not parse time difference"));
 
-        let divergence = DMatrix::from(&nodes, posterior_max_filter);
-        let pedigree = divergence.convert(&nodes, &edges);
-        Ok((pedigree, tmp0uu_meth_lvl))
+            let find_nx_by_name = |name: &str| {
+                for nx in p.node_indices() {
+                    if p.node_weight(nx).unwrap().name == name {
+                        return Some(nx);
+                    }
+                }
+                None
+            };
+
+            let from_nx = find_nx_by_name(from)
+                .ok_or(Error::EdgelistContainingNonExistentNode(from.into()))?;
+            let to_nx =
+                find_nx_by_name(to).ok_or(Error::EdgelistContainingNonExistentNode(to.into()))?;
+
+            p.add_edge(from_nx, to_nx, dt);
+        }
+
+        Ok(Pedigree(p))
+
+        // let mut nodes: Vec<Node> = nodes.iter().filter(|n| n.meth).cloned().collect();
     }
 }
 
 impl Deref for Pedigree {
-    type Target = Array2<f64>;
+    type Target = DiGraph<Node, u8>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -221,15 +240,11 @@ mod tests {
         let nodelist = Path::new("./data/nodelist.txt");
         let edgelist = Path::new("./data/edgelist.txt");
 
-        let pedigree = Pedigree::build(nodelist, edgelist, 0.99).expect("Could not build pedigree");
+        let div = Pedigree::build(nodelist, edgelist, 0.99)
+            .expect("Could not build pedigree")
+            .divergence(0.99);
 
-        assert_eq!(pedigree.0.shape(), &[4 * 3 / 2, 4]);
-        pedigree
-            .0
-            .to_file(Path::new("./data/pedigree_generated.txt"))
-            .unwrap();
-        // TODO: enable
-        // assert_close!(pedigree.1, 0.4567024);
+        assert_eq!(div.shape(), &[4 * 3 / 2, 4]);
     }
 
     // #[test]

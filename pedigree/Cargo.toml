@@ -15,7 +15,7 @@ path = "src/lib.rs"
 
 [dependencies]
 ndarray = { version = "0.15",  features = ["blas"]}
-petgraph = "0.6.2"
+petgraph = "0.6.4"
 thiserror = "1.0.40"
 methylome ={ path = "../methylome", version = "0.3"}
 progress_bars ={ path = "../progress_bars", version =  "0.3"}
