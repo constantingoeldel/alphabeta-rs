@@ -1,7 +1,11 @@
+mod dataframe;
 mod dmatrix;
+mod error;
 
-use petgraph::{data::FromElements, graph::DiGraph, visit::IntoEdges};
-
+use petgraph::{
+    adj::NodeIndex, data::FromElements, graph::DiGraph, visit::IntoEdges, Direction::Incoming,
+};
+use polars::prelude::*;
 use std::{
     fs::{self, File},
     io::{BufRead, BufReader, Write},
@@ -9,7 +13,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-mod error;
 use dmatrix::DMatrix;
 pub use error::Error;
 pub type Return<T> = std::result::Result<T, Error>;
@@ -18,27 +21,50 @@ use methylome::{MethylationSite, MethylationStatus};
 
 use ndarray::{Array2, ArrayView};
 #[derive(Debug)]
-struct Node {
-    id: usize,
+pub struct Node {
+    id: u32,
     name: String,
     generation: u32,
-    meth: bool,
-    sites: Vec<MethylationSite>, // Might lead to memory issues if there are too many sites. But it makes lookup really fast.
+    // meth: bool,
+    sites: Option<DataFrame>,
 }
 
 impl Node {
-    fn proportion_unmethylated(&self) -> f64 {
-        let p_uu_count = self
-            .sites
-            .iter()
-            .filter(|s| s.status == MethylationStatus::U)
-            .count();
+    // fn proportion_unmethylated(&self) -> Option<f64> {
+    //     match &self.sites {
+    //         None => None,
+    //         Some(df) => {
+    //             let len = df.height() as f64;
+    //             let umeth_count = df
+    //                 .clone()
+    //                 .lazy()
+    //                 .group_by("status")
+    //                 .agg([col("*").count()])
+    //                 // .filter(col("status").eq(lit("U")))
+    //                 // .sum()
+    //                 .collect()
+    //                 .unwrap();
 
-        p_uu_count as f64 / self.sites.len() as f64
-    }
+    //             Some(umeth_count["status"].max::<f64>().unwrap() / len)
+    //         }
+    //     }
+    // }
 
-    fn avg_meth_lvl(&self) -> f64 {
-        self.sites.iter().map(|s| s.meth_lvl).sum::<f64>() / self.sites.len() as f64
+    fn avg_meth_lvl(&self) -> Option<f64> {
+        self.sites.as_ref().map(|df| {
+            df.clone()
+                .lazy()
+                .select(&[col("rc.meth.lvl")])
+                .mean()
+                .collect()
+                .unwrap()
+                .get(0)
+                .unwrap()
+                .get(0)
+                .unwrap()
+                .try_extract::<f64>()
+                .unwrap()
+        })
     }
 }
 
@@ -60,7 +86,7 @@ type UnmethylatedLevel = f64;
 /// Directed Graph containing the pedigree
 ///
 /// Edge weights are the generational time between two samples, "1" by default
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Pedigree(DiGraph<Node, u8>);
 
 impl Pedigree {
@@ -112,29 +138,60 @@ impl Pedigree {
     }
 
     pub fn divergence(&self, posterior_max_filter: f64) -> DivergenceBetweenSamples {
-        todo!();
-
-        // let divergence = DMatrix::from(self.nodes(), posterior_max_filter);
-        // divergence.convert(self.nodes(), self.edges())
+        let divergence = DMatrix::from(self, posterior_max_filter);
+        divergence.unwrap().convert(self)
     }
 
     pub fn avg_umeth_lvl(&self) -> UnmethylatedLevel {
         self.node_weights()
-            .map(|n| 1.0 - n.rc_meth_lvl.unwrap())
+            .filter_map(|n| n.avg_meth_lvl())
+            .map(|n| 1.0 - n)
             .sum::<f64>()
             / self.node_count() as f64
     }
 
-    pub fn build<P>(nodelist: P, edgelist: P, posterior_max_filter: f64) -> Return<Self>
+    /// Iteratator over all nodes of the pedigree that contain a sites dataframe
+    pub fn dfs(&self) -> impl Iterator<Item = &DataFrame> {
+        self.node_weights()
+            .filter_map(|n| n.sites.as_ref())
+            .collect::<Vec<_>>()
+            .into_iter()
+    }
+
+    pub fn nodes_with_sites(&self) -> impl Iterator<Item = &Node> {
+        self.node_weights()
+            .filter(|n| n.sites.is_some())
+            .collect::<Vec<_>>()
+            .into_iter()
+    }
+
+    /// Number of nodes in the pedigree that contain a sites dataframe
+    pub fn df_count(&self) -> usize {
+        self.node_weights()
+            .fold(0, |acc, n| if n.sites.is_some() { acc + 1 } else { acc })
+    }
+
+    pub fn build<P>(
+        nodelist: P,
+        edgelist: P,
+        posterior_max_filter: f64,
+        custom_column_names: Option<Vec<&'static str>>,
+    ) -> Return<Self>
     where
         P: AsRef<Path>,
     {
         let mut p = DiGraph::new();
-        let nodes = fs::read_to_string(nodelist)?;
-        let edges = fs::read_to_string(edgelist)?;
+        let nodes = dataframe::load(&nodelist, Some(&["filename", "node", "gen", "meth"]));
+        let edges = dataframe::load(&edgelist, Some(&["from", "to", "dt"]));
+
+        let nodes = fs::read_to_string(&nodelist)?;
+        let edges = fs::read_to_string(&edgelist)?;
         let pb = progress_bars::Progress::new("Loading Methylation Data", nodes.len());
         for (i, line) in nodes.split(['\n', '\r']).skip(1).enumerate() {
             pb.inc(1);
+            if line.is_empty() {
+                continue;
+            }
             let mut entries = line.split([',', '\t', ' ']);
             let file = entries.next().ok_or(Error::NoFile(line.into()))?;
             let name = entries.next().ok_or(Error::NoName(line.into()))?;
@@ -146,39 +203,27 @@ impl Pedigree {
             let meth = entries.next().ok_or(Error::NoMethylation(line.into()))?;
             let meth = meth == "Y";
 
-            if meth {
-                let file = if file.starts_with("/") {
-                    file.into()
-                } else {
-                    let mut file = PathBuf::from(nodelist.as_ref().parent().unwrap());
-                    file.push(file);
-                    file
-                };
-
-                if !file.exists() {
-                    return Err(Error::MethylationFile(file));
-                }
-            }
-
             let node = Node {
-                id: i,
+                id: i as u32,
                 name: name.into(),
                 generation,
-                meth,
 
                 sites: if meth {
-                    let f = File::open(file).map_err(Error::NodeFile)?;
-                    let reader = BufReader::new(f);
-                    reader
-                        .lines()
-                        .filter_map(|l| {
-                            MethylationSite::from_methylome_file_line(
-                                &l.expect("Could not read methylation file line"),
-                            )
-                        })
-                        .collect::<Vec<MethylationSite>>()
+                    let file = if file.starts_with('/') {
+                        file.into()
+                    } else {
+                        let mut full_path = PathBuf::from(nodelist.as_ref().parent().unwrap());
+                        full_path.push(file);
+                        full_path
+                    };
+
+                    if !file.exists() {
+                        return Err(Error::MethylationFile(file));
+                    }
+
+                    Some(dataframe::load(file, custom_column_names.as_deref()))
                 } else {
-                    Vec::new()
+                    None
                 },
             };
 
@@ -187,6 +232,10 @@ impl Pedigree {
         pb.finish();
 
         for line in edges.split(['\n', '\r']).skip(1) {
+            if line.is_empty() {
+                continue;
+            }
+
             let mut entries = line.split(['\t', ' ', ',']);
             let from = entries.next().ok_or(Error::NoFrom)?;
             let to = entries.next().ok_or(Error::NoTo)?;
@@ -195,12 +244,8 @@ impl Pedigree {
                 .map_or(1, |t| t.parse().expect("Could not parse time difference"));
 
             let find_nx_by_name = |name: &str| {
-                for nx in p.node_indices() {
-                    if p.node_weight(nx).unwrap().name == name {
-                        return Some(nx);
-                    }
-                }
-                None
+                p.node_indices()
+                    .find(|&nx| p.node_weight(nx).unwrap().name == name)
             };
 
             let from_nx = find_nx_by_name(from)
@@ -214,6 +259,66 @@ impl Pedigree {
         Ok(Pedigree(p))
 
         // let mut nodes: Vec<Node> = nodes.iter().filter(|n| n.meth).cloned().collect();
+    }
+
+    fn sites_per_node(&self) -> usize {
+        self.node_weights()
+            .find_map(|n| n.sites.as_ref())
+            .map(|df| df.height())
+            .unwrap_or(0)
+    }
+
+    fn get_predecessor_sites(&self, node: &Node) -> Option<&DataFrame> {
+        let pred = self.neighbors_directed(node.id.into(), Incoming).next()?;
+
+        match &self.node_weight(pred)?.sites {
+            None => self.get_predecessor_sites(self.node_weight(pred)?),
+            Some(df) => Some(df),
+        }
+    }
+
+    /// Based on the inheritance pattern defined by the pedigree graph
+    /// this method filters out all the sites that don't meet a stability requirement.
+    ///
+    /// The stability is quantified by the total number of switches between methylated and unmethylated
+    /// states in the lineage of a site.
+    ///
+    /// Inclusive min, exclusive max
+    pub fn filter_by_inheritance_stability(mut self, min: u32, max: u32) -> Return<Self> {
+        let mut scores = Series::new("scores", vec![0; self.sites_per_node()]);
+        for (i, node) in self.node_weights().enumerate() {
+            if let Some(df) = &node.sites {
+                let status = df.column("status")?;
+
+                let pred_sites = self.get_predecessor_sites(node);
+
+                match pred_sites {
+                    Some(pred_sites) => {
+                        let pred_status = pred_sites.column("status")?;
+                        let diff = status - pred_status;
+                        scores = scores + diff;
+                    }
+                    None => continue,
+                }
+            }
+        }
+
+        let scores: BooleanChunked = scores
+            .rechunk()
+            .iter()
+            .map(|s| s.ge(&AnyValue::UInt32(min)) && s.lt(&AnyValue::UInt32(max)))
+            .collect_ca("scores");
+
+        self.node_weights_mut()
+            .for_each(|n| match n.sites.as_ref() {
+                None => {}
+                Some(df) => {
+                    let df = df.clone().filter(&scores).unwrap();
+                    n.sites = Some(df);
+                }
+            });
+
+        Ok(self)
     }
 }
 
@@ -235,13 +340,30 @@ impl DerefMut for Pedigree {
 mod tests {
 
     use super::*;
+
+    // #[test]
+    // fn proportion_unmethylated() {
+    //     let path = PathBuf::from("../data/methylome/G0.txt");
+
+    //     let df = load(path, None);
+
+    //     let node = Node {
+    //         id: 0,
+    //         name: "G0".into(),
+    //         generation: 0,
+    //         sites: Some(df),
+    //     };
+    //     assert!(node.proportion_unmethylated().is_some());
+    //     assert_eq!(node.proportion_unmethylated(), Some(0.5));
+    // }
+
     #[test]
     fn build_pedigree() {
-        let nodelist = Path::new("./data/nodelist.txt");
-        let edgelist = Path::new("./data/edgelist.txt");
+        let nodelist = Path::new("../data/nodelist.txt");
+        let edgelist = Path::new("../data/edgelist.txt");
 
-        let div = Pedigree::build(nodelist, edgelist, 0.99)
-            .expect("Could not build pedigree")
+        let div = Pedigree::build(nodelist, edgelist, 0.99, None)
+            .unwrap()
             .divergence(0.99);
 
         assert_eq!(div.shape(), &[4 * 3 / 2, 4]);

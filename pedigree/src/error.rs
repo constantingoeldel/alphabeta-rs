@@ -30,4 +30,6 @@ pub enum Error {
     MethylationFile(PathBuf),
     #[error("The methylation site {0} could not be parsed")]
     MethylationParsingError(String),
+    #[error("{0}")]
+    DataFrame(#[from] polars::error::PolarsError),
 }

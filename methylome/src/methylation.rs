@@ -392,7 +392,7 @@ mod tests {
         let file = read_to_string("data/heterogenity_score_files.txt").unwrap();
         let sites: Vec<MethylationSite> = file
             .split('\n')
-            .filter_map(|s| MethylationSite::from_methylome_file_line(s))
+            .filter_map(MethylationSite::from_methylome_file_line)
             .collect();
         assert_eq!(sites.get(0).unwrap().start, 809);
         assert_eq!(sites.len(), 509825);
@@ -403,28 +403,28 @@ mod tests {
         let file = read_to_string("data/methylome/G0.txt").unwrap();
         let sites: Vec<_> = file
             .split('\n')
-            .filter_map(|s| MethylationSite::from_methylome_file_line(s))
+            .filter_map(MethylationSite::from_methylome_file_line)
             .collect();
         assert_eq!(sites.len(), 500); // Only 500 of the > 2800 sites are CG sites
 
         let file = read_to_string("data/methylome/G1_2.txt").unwrap();
         let sites: Vec<MethylationSite> = file
             .split('\n')
-            .filter_map(|s| MethylationSite::from_methylome_file_line(s))
+            .filter_map(MethylationSite::from_methylome_file_line)
             .collect();
         assert_eq!(sites.len(), 500);
 
         let file = read_to_string("data/methylome/G4_2.txt").unwrap();
         let sites: Vec<MethylationSite> = file
             .split('\n')
-            .filter_map(|s| MethylationSite::from_methylome_file_line(s))
+            .filter_map(MethylationSite::from_methylome_file_line)
             .collect();
         assert_eq!(sites.len(), 500);
 
         let file = read_to_string("data/methylome/G4_8.txt").unwrap();
         let sites: Vec<MethylationSite> = file
             .split('\n')
-            .filter_map(|s| MethylationSite::from_methylome_file_line(s))
+            .filter_map(MethylationSite::from_methylome_file_line)
             .collect();
         assert_eq!(sites.len(), 500);
     }

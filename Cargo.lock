@@ -1569,6 +1569,7 @@ dependencies = [
  "methylome",
  "ndarray",
  "petgraph",
+ "polars",
  "progress_bars",
  "thiserror",
 ]
@@ -1648,13 +1649,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "38f6d39893cca0701371e3c27294f09797214b86f1fb951b89ade8ec04e2abab"
 dependencies = [
  "plotters-backend",
-]
-
-[[package]]
-name = "pls"
-version = "0.1.0"
-dependencies = [
- "polars",
 ]
 
 [[package]]
