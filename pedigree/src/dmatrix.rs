@@ -1,4 +1,4 @@
-use petgraph::{adj::NodeIndex, algo::astar, prelude::UnGraph, visit::Dfs, Direction::Incoming};
+use petgraph::{Direction::Incoming};
 
 use ndarray::{array, Array2, Axis};
 use polars::prelude::*;
@@ -9,7 +9,7 @@ use crate::{DivergenceBetweenSamples, Node, Pedigree, Return};
 pub struct DMatrix(Array2<f64>);
 
 impl DMatrix {
-    pub fn from(pedigree: &Pedigree, posterior_max: f64) -> Return<Self> {
+    pub fn from(pedigree: &Pedigree, _posterior_max: f64) -> Return<Self> {
         println!();
         println!();
         println!("Calculating divergences between all pairs of nodes...");
@@ -37,8 +37,8 @@ impl DMatrix {
                 //     continue;
                 // }
 
-                let mut divergence = 0;
-                let mut compared_sites = 0;
+                let _divergence = 0;
+                let _compared_sites = 0;
 
                 let categorical_to_numeric = |s: &Series| {
                     s.iter()

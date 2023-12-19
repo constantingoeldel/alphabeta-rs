@@ -3,12 +3,12 @@ mod dmatrix;
 mod error;
 
 use petgraph::{
-    adj::NodeIndex, data::FromElements, graph::DiGraph, visit::IntoEdges, Direction::Incoming,
+    graph::DiGraph, Direction::Incoming,
 };
 use polars::prelude::*;
 use std::{
     fs::{self, File},
-    io::{BufRead, BufReader, Write},
+    io::{BufRead, Write},
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
 };
@@ -17,7 +17,7 @@ use dmatrix::DMatrix;
 pub use error::Error;
 pub type Return<T> = std::result::Result<T, Error>;
 
-use methylome::{MethylationSite, MethylationStatus};
+
 
 use ndarray::{Array2, ArrayView};
 #[derive(Debug)]
@@ -174,15 +174,15 @@ impl Pedigree {
     pub fn build<P>(
         nodelist: P,
         edgelist: P,
-        posterior_max_filter: f64,
+        _posterior_max_filter: f64,
         custom_column_names: Option<Vec<&'static str>>,
     ) -> Return<Self>
     where
         P: AsRef<Path>,
     {
         let mut p = DiGraph::new();
-        let nodes = dataframe::load(&nodelist, Some(&["filename", "node", "gen", "meth"]));
-        let edges = dataframe::load(&edgelist, Some(&["from", "to", "dt"]));
+        let _nodes = dataframe::load(&nodelist, Some(&["filename", "node", "gen", "meth"]));
+        let _edges = dataframe::load(&edgelist, Some(&["from", "to", "dt"]));
 
         let nodes = fs::read_to_string(&nodelist)?;
         let edges = fs::read_to_string(&edgelist)?;
@@ -286,7 +286,7 @@ impl Pedigree {
     /// Inclusive min, exclusive max
     pub fn filter_by_inheritance_stability(mut self, min: u32, max: u32) -> Return<Self> {
         let mut scores = Series::new("scores", vec![0; self.sites_per_node()]);
-        for (i, node) in self.node_weights().enumerate() {
+        for (_i, node) in self.node_weights().enumerate() {
             if let Some(df) = &node.sites {
                 let status = df.column("status")?;
 

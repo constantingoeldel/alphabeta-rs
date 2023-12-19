@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{BufRead as _, BufReader},
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use polars::prelude::*;
@@ -42,7 +42,7 @@ where
         .unwrap();
 
     if custom_column_names.is_some() {
-        df.set_column_names(&custom_column_names.unwrap()).unwrap();
+        df.set_column_names(custom_column_names.unwrap()).unwrap();
     } else if !has_header {
         let default_names = [
             "chromosome",
@@ -82,7 +82,7 @@ where
         .filter(|c| c.starts_with('_'))
         .into_vec();
 
-    let mut df = df.drop_many(&colums_to_drop);
+    let df = df.drop_many(&colums_to_drop);
 
     // if df.get_column_index("strand").is_some() {
     //     df.with_column(
@@ -134,6 +134,7 @@ fn sites_within(df: DataFrame, chromosome: u32, start: u32, end: u32, strand: &s
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::PathBuf;
 
     #[test]
     fn load_small() {
