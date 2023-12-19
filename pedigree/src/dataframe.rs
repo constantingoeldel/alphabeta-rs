@@ -41,8 +41,8 @@ where
         .finish()
         .unwrap();
 
-    if custom_column_names.is_some() {
-        df.set_column_names(custom_column_names.unwrap()).unwrap();
+    if let Some(names) = custom_column_names {
+        df.set_column_names(names).unwrap();
     } else if !has_header {
         let default_names = [
             "chromosome",
@@ -157,6 +157,7 @@ mod tests {
         assert_eq!(df.shape(), (12, 10));
     }
     #[test]
+    #[allow(non_snake_case)]
     fn sites_within_gbM() {
         let path =
             PathBuf::from("../data/methylome_full/within_gbM_genes/methylome_Col0_G0_All.txt");

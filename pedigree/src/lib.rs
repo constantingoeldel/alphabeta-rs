@@ -2,13 +2,11 @@ mod dataframe;
 mod dmatrix;
 mod error;
 
-use petgraph::{
-    graph::DiGraph, Direction::Incoming,
-};
+use petgraph::{graph::DiGraph, Direction::Incoming};
 use polars::prelude::*;
 use std::{
     fs::{self, File},
-    io::{BufRead, Write},
+    io::Write,
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
 };
@@ -16,8 +14,6 @@ use std::{
 use dmatrix::DMatrix;
 pub use error::Error;
 pub type Return<T> = std::result::Result<T, Error>;
-
-
 
 use ndarray::{Array2, ArrayView};
 #[derive(Debug)]
