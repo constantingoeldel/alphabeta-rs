@@ -10,8 +10,6 @@ pub fn load<P>(path: P, custom_column_names: Option<&[&'static str]>) -> DataFra
 where
     P: AsRef<Path>,
 {
-    let tic = std::time::Instant::now();
-
     // Get first line of file
     let mut reader = BufReader::new(File::open(&path).unwrap());
     let mut line = String::new();
@@ -42,6 +40,7 @@ where
         .unwrap();
 
     if let Some(names) = custom_column_names {
+        dbg!(names);
         df.set_column_names(names).unwrap();
     } else if !has_header {
         let default_names = [
@@ -82,30 +81,7 @@ where
         .filter(|c| c.starts_with('_'))
         .into_vec();
 
-    let df = df.drop_many(&colums_to_drop);
-
-    // if df.get_column_index("strand").is_some() {
-    //     df.with_column(
-    //         df.column("strand")
-    //             .unwrap()
-    //             .cast(&DataType::Categorical(None))
-    //             .unwrap(),
-    //     )
-    //     .unwrap();
-    // }
-
-    // if df.get_column_index("status").is_some() {
-    //     df.with_column(
-    //         df.column("status")
-    //             .unwrap()
-    //             .cast(&DataType::Categorical(None))
-    //             .unwrap(),
-    //     )
-    //     .unwrap();
-    // }
-
-    println!("Elapsed time: {:?}", tic.elapsed());
-    df
+    df.drop_many(&colums_to_drop)
 }
 
 fn sites_within(df: DataFrame, chromosome: u32, start: u32, end: u32, strand: &str) -> DataFrame {

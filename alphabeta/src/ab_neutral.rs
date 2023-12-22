@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use crate::divergence::{divergence, Divergence};
+use crate::divergence::Divergence;
 use crate::optimizer::{Model, PredictedDivergence, Problem, Residuals};
 use crate::{config, Error, Return};
 use argmin::{core::Executor, solver::neldermead::NelderMead};
@@ -9,7 +9,7 @@ use pedigree::{DivergenceBetweenSamples, Pedigree};
 use rayon::prelude::*;
 
 pub fn run(
-    sample_divergence: &DivergenceBetweenSamples,
+    divergence: &DivergenceBetweenSamples,
     p0uu: f64,
     eqp: f64,
     eqp_weight: f64,
@@ -18,7 +18,7 @@ pub fn run(
     let n_starts = config::get().iterations;
     let p0mm = 1.0 - p0uu;
     let p0um = 0.0;
-    let max_divergence = *pedigree
+    let max_divergence = *divergence
         .column(3)
         .iter()
         .max_by(|a, b| a.partial_cmp(b).expect("There is a NaN value in the divergence column"))
@@ -36,7 +36,7 @@ pub fn run(
             // Draw random starting values
 
             let problem = Problem {
-                divergence: sample_divergence.clone(),
+                divergence: divergence.clone(),
                 eqp_weight,
                 eqp,
                 p_mm: p0mm,
@@ -81,10 +81,10 @@ pub fn run(
     res?;
     pb.finish();
 
-    let mut results = results.into_inner().unwryap();
+    let mut results = results.into_inner().unwrap();
     // Calculating the least squares error for all results and selecting the best one
     results.sort_by(|a, b| {
-        let divergence = sample_divergence.clone();
+        let divergence = divergence.clone();
         let divergence_a =
             Divergence::calc(&divergence, p0mm, p0um, p0uu, a.alpha, a.beta, a.weight);
         let divergence_b =
@@ -93,13 +93,13 @@ pub fn run(
         let lse_a = divergence_a
             .dt1t2
             .iter()
-            .zip(pedigree.column(3))
+            .zip(divergence.column(3))
             .map(|(div, ped)| (ped - a.intercept - div).powi(2))
             .sum::<f64>();
         let lse_b = divergence_b
             .dt1t2
             .iter()
-            .zip(pedigree.column(3))
+            .zip(divergence.column(3))
             .map(|(div, ped)| (ped - b.intercept - div).powi(2))
             .sum::<f64>();
         lse_a
@@ -112,8 +112,8 @@ pub fn run(
 
     let best: &Model = &results[0];
 
-    let divergence = Divergence::calc(
-        pedigree,
+    let div = Divergence::calc(
+        divergence,
         p0mm,
         p0um,
         p0uu,
@@ -123,21 +123,21 @@ pub fn run(
     );
 
     let mut delta_t = Vec::new();
-    for row in pedigree.rows() {
+    for row in divergence.rows() {
         delta_t.push(row[2] - row[3] - 2.0 * row[1])
     }
 
     let mut predicted_divergence = Vec::new();
 
-    for (i, _row) in pedigree.rows().into_iter().enumerate() {
+    for (i, _row) in divergence.rows().into_iter().enumerate() {
         predicted_divergence.push(
-            best.intercept + divergence.dt1t2[i], /*+ delta_t[i] * best.alpha*/
+            best.intercept + div.dt1t2[i], /*+ delta_t[i] * best.alpha*/
         );
     }
 
     let mut residuals = Vec::new();
 
-    for (i, row) in pedigree.rows().into_iter().enumerate() {
+    for (i, row) in divergence.rows().into_iter().enumerate() {
         residuals.push(row[3] - predicted_divergence[i]);
     }
 

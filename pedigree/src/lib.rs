@@ -1,5 +1,4 @@
 mod dataframe;
-mod dmatrix;
 mod error;
 
 use petgraph::{graph::DiGraph, Direction::Incoming};
@@ -11,11 +10,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use dmatrix::DMatrix;
 pub use error::Error;
 pub type Return<T> = std::result::Result<T, Error>;
 
-use ndarray::{Array2, ArrayView};
+use ndarray::{array, Array2, ArrayView, Axis};
 #[derive(Debug)]
 pub struct Node {
     id: u32,
@@ -119,7 +117,7 @@ impl Pedigree {
         divergence
     }
 
-    pub fn divergence_to_file<P>(&self, path: P, posterior_max_filter: f64) -> std::io::Result<()>
+    pub fn divergence_to_file<P>(&self, path: P) -> std::io::Result<()>
     where
         P: AsRef<Path> + std::fmt::Debug,
     {
@@ -127,15 +125,10 @@ impl Pedigree {
         let mut file = File::create(path)?;
         let mut content = String::new();
         content += "time0\ttime1\ttime2\tD.value\n";
-        for row in self.divergence(posterior_max_filter).rows() {
+        for row in self.divergence().unwrap().rows() {
             content.push_str(&format!("{}\t{}\t{}\t{}\n", row[0], row[1], row[2], row[3]));
         }
         file.write_all(content.as_bytes())
-    }
-
-    pub fn divergence(&self, posterior_max_filter: f64) -> DivergenceBetweenSamples {
-        let divergence = DMatrix::from(self, posterior_max_filter);
-        divergence.unwrap().convert(self)
     }
 
     pub fn avg_umeth_lvl(&self) -> UnmethylatedLevel {
@@ -177,14 +170,12 @@ impl Pedigree {
         P: AsRef<Path>,
     {
         let mut p = DiGraph::new();
-        let _nodes = dataframe::load(&nodelist, Some(&["filename", "node", "gen", "meth"]));
-        let _edges = dataframe::load(&edgelist, Some(&["from", "to", "dt"]));
+        // let _nodes = dataframe::load(&nodelist, Some(&["filename", "node", "gen", "meth"]));
+        // let _edges = dataframe::load(&edgelist, Some(&["from", "to", "dt"]));
 
         let nodes = fs::read_to_string(&nodelist)?;
         let edges = fs::read_to_string(&edgelist)?;
-        let pb = progress_bars::Progress::new("Loading Methylation Data", nodes.len());
         for (i, line) in nodes.split(['\n', '\r']).skip(1).enumerate() {
-            pb.inc(1);
             if line.is_empty() {
                 continue;
             }
@@ -205,7 +196,7 @@ impl Pedigree {
                 generation,
 
                 sites: if meth {
-                    let file = if file.starts_with('/') {
+                    let file = if file.starts_with('/') || file.starts_with('.') {
                         file.into()
                     } else {
                         let mut full_path = PathBuf::from(nodelist.as_ref().parent().unwrap());
@@ -225,7 +216,6 @@ impl Pedigree {
 
             p.add_node(node);
         }
-        pb.finish();
 
         for line in edges.split(['\n', '\r']).skip(1) {
             if line.is_empty() {
@@ -316,6 +306,85 @@ impl Pedigree {
 
         Ok(self)
     }
+
+    pub fn filter_by_posterior_max(&self, _posterior_max_filter: f64) -> Self {
+        todo!()
+    }
+
+    /// Calculate the divergence between all pairs of nodes in the pedigree.
+    pub fn divergence(&self) -> Return<DivergenceBetweenSamples> {
+        println!("Calculating divergences between all pairs of nodes...");
+        println!();
+        let n_nodes = self.df_count();
+        let mut divergence_matrix = Array2::<f64>::zeros((n_nodes, n_nodes));
+        let mut divergence_list = Array2::<f64>::default((0, 4));
+
+        // let pb = progress_bars::Progress::new(
+        //     "Calculating Divergences ",
+        //     binomial_coefficient(n_nodes, 2),
+        // );
+
+        // Go over all pairs of nodes, excluding self-pairs
+        for (i, first) in self.nodes_with_sites().enumerate() {
+            for (j, second) in self.nodes_with_sites().skip(i + 1).enumerate() {
+                // pb.inc(1);
+
+                let _divergence = 0;
+                let _compared_sites = 0;
+
+                let categorical_to_numeric = |s: &Series| {
+                    s.iter()
+                        .map(|v| match v {
+                            AnyValue::Utf8("U") => 0,
+                            AnyValue::Utf8("I") => 1,
+                            AnyValue::Utf8("M") => 2,
+                            _ => panic!("Unknown status"),
+                        })
+                        .collect::<Series>()
+                };
+
+                let div = categorical_to_numeric(first.sites.as_ref().unwrap().column("status")?)
+                    - categorical_to_numeric(second.sites.as_ref().unwrap().column("status")?);
+
+                let div = abs(&div).unwrap().sum().unwrap();
+                // dbg!(i, j, div);
+                divergence_matrix[[i, j]] = div; // There is only one row in the dataframe
+
+                fn lcm<'g>(pedigree: &'g Pedigree, n: &'g Node, m: &'g Node) -> Option<&'g Node> {
+                    let parent = |n: &Node| -> Option<&Node> {
+                        pedigree
+                            .node_weight(pedigree.neighbors_directed(n.id.into(), Incoming).next()?)
+                    };
+
+                    match n.generation.cmp(&m.generation) {
+                        std::cmp::Ordering::Less => lcm(pedigree, n, parent(m)?),
+                        std::cmp::Ordering::Greater => lcm(pedigree, parent(n)?, m),
+                        std::cmp::Ordering::Equal => {
+                            if n.id == m.id {
+                                Some(n)
+                            } else {
+                                lcm(pedigree, parent(n)?, parent(m)?)
+                            }
+                        }
+                    }
+                }
+
+                let t0 = lcm(self, first, second).unwrap().generation as f64;
+
+                let t1 = first.generation as f64;
+                let t2 = second.generation as f64;
+
+                let generational_distance = t2 + t1 - 2.0 * t0;
+                // dbg!(t0, t1, t2, div, generational_distance);
+                divergence_list
+                    .push(Axis(0), array![t0, t1, t2, div].view())
+                    .expect("Could not insert row into divergence list");
+            }
+        }
+        // pb.finish();
+
+        Ok(divergence_list)
+    }
 }
 
 impl Deref for Pedigree {
@@ -330,6 +399,16 @@ impl DerefMut for Pedigree {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
+}
+
+fn binomial_coefficient(n: usize, k: usize) -> usize {
+    let mut result = 1;
+    let k = k.min(n - k); // take advantage of symmetry
+    for i in 0..k {
+        result *= n - i;
+        result /= i + 1;
+    }
+    result
 }
 
 #[cfg(test)]
@@ -360,9 +439,9 @@ mod tests {
 
         let div = Pedigree::build(nodelist, edgelist, 0.99, None)
             .unwrap()
-            .divergence(0.99);
+            .divergence();
 
-        assert_eq!(div.shape(), &[4 * 3 / 2, 4]);
+        assert_eq!(div.unwrap().shape(), &[4 * 3 / 2, 4]);
     }
 
     // #[test]

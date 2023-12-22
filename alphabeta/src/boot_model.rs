@@ -10,10 +10,10 @@ use crate::{
     optimizer::{Model, PredictedDivergence, Problem, Residuals},
     plot, *,
 };
-use pedigree::Pedigree;
+use pedigree::{DivergenceBetweenSamples, Pedigree};
 // The number of arguments is not ideal but it is just a complex function
 pub fn run(
-    pedigree: &Pedigree,
+    divergence: &DivergenceBetweenSamples,
     params: &Model,
     pred_div: PredictedDivergence,
     residuals: Residuals,
@@ -40,7 +40,7 @@ pub fn run(
             let residual_dist = Slice::new(&residuals).unwrap();
             let residual_sample: Vec<&f64> = rng
                 .sample_iter(&residual_dist)
-                .take(pedigree.len_of(Axis(0)))
+                .take(divergence.len_of(Axis(0)))
                 .collect();
             assert!(pred_div.len() == residual_sample.len());
             let div_ops: Vec<f64> = pred_div
@@ -49,11 +49,13 @@ pub fn run(
                 .map(|(a, b)| a + *b)
                 .collect();
 
-            let mut pedigree = pedigree.clone();
-            pedigree.slice_mut(s![.., 3]).assign(&Array1::from(div_ops));
+            let mut divergence = divergence.clone();
+            divergence
+                .slice_mut(s![.., 3])
+                .assign(&Array1::from(div_ops));
 
             let problem = Problem {
-                pedigree,
+                divergence,
                 eqp_weight,
                 eqp,
                 p_mm: p0mm,

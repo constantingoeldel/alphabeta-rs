@@ -5,7 +5,7 @@ use ndarray::array;
 use ndarray::Array2;
 
 use methylome::p_uu_est;
-use pedigree::Pedigree;
+use pedigree::DivergenceBetweenSamples;
 
 #[derive(Debug)]
 pub struct Divergence {
@@ -31,7 +31,7 @@ pub fn matrix_power(matrix: &Array2<f64>, power: i8) -> Array2<f64> {
 }
 impl Divergence {
     pub fn calc(
-        pedigree: &Pedigree,
+        pedigree: &DivergenceBetweenSamples,
         p_mm: f64,
         _p_um: f64,
         p_uu: f64,
@@ -44,7 +44,7 @@ impl Divergence {
         let sv_gzero = array![p_uu, (weight) * p_mm, (1.0 - weight) * p_mm];
 
         // 	Defining the generation (or transition) matrix
-        let genmatrix = genmatrix(alpha, beta);
+        let genmatrix = Self::genmatrix(alpha, beta);
 
         let mut dt1t2 = Vec::new();
         // 	Calculating theoretical divergence for every observed pair in 'data/data/pedigree.txt'
@@ -128,6 +128,10 @@ mod test {
         };
     }
 
+    use pedigree::Pedigree;
+
+    use crate::divergence;
+
     use super::*;
 
     #[test]
@@ -148,8 +152,8 @@ mod test {
     }
     #[test]
     fn same_as_r() {
-        let pedigree = Pedigree::from_file("./data/pedigree.txt");
-        let divergence = divergence(
+        let pedigree = Pedigree::divergence_from_file("./data/pedigree.txt");
+        let divergence = divergence::Divergence::calc(
             &pedigree,
             0.25,
             0.0,
@@ -173,7 +177,7 @@ mod test {
 
     #[test]
     fn dot_product_is_the_same_as_row() {
-        let genmatrix = genmatrix(0.2, 0.5);
+        let genmatrix = Divergence::genmatrix(0.2, 0.5);
         let dot = array![0.0, 0.0, 1.0].t().dot(&matrix_power(&genmatrix, 2));
 
         let row = matrix_power(&genmatrix, 2).row(2).to_owned();
@@ -181,7 +185,7 @@ mod test {
     }
     #[test]
     fn implementation_stays_same() {
-        let genmatrix = genmatrix(0.2, 0.5);
+        let genmatrix = Divergence::genmatrix(0.2, 0.5);
         let t2 = 2;
         let t1 = 1;
         let t0 = 0;

@@ -10,6 +10,10 @@ repository = "https://github.com/constantingoeldel/alphabeta-rs"
 name = "pedigree"
 path = "src/lib.rs"
 
+[[bin]]
+name = "pedigree"
+path = "src/cli.rs"
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -20,5 +24,5 @@ thiserror = "1.0.40"
 methylome ={ path = "../methylome", version = "0.3"}
 progress_bars ={ path = "../progress_bars", version =  "0.3"}
 polars = { version =  "0.35.4", features = ["dtype-categorical", "dtype-u8", "streaming", "csv", "fmt", "lazy", "abs"]}
-# viuer = "0.6"
+clap = { version = "4.4", features = ["derive"] }
 

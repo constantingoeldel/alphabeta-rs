@@ -22,7 +22,7 @@ fn main() {
             println!("Observed steady state methylation {obs_steady_state}");
             println!("##########");
             pedigree
-                .to_file(args.output.join("pedigree.txt"))
+                .divergence_to_file(args.output.join("pedigree.txt"))
                 .expect("Failed to write pedigree");
             analysis
                 .to_file(args.output.join("analysis.txt"))

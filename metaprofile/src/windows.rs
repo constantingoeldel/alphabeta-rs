@@ -195,7 +195,7 @@ impl Windows {
                     let mut error_count = 0;
                     for line in lines {
                         let line = line.unwrap();
-                        let m = MethylationSite::from_methylome_file_line(&line, args.invert);
+                        let m = MethylationSite::from_methylome_file_line(&line);
 
                         match m {
                             Some(site) => sites.push(site),
@@ -295,7 +295,7 @@ impl Windows {
             pb.inc(1);
             if let Ok(line) = line_result {
                 // If cg site could not be extracted from a file line, continue with the next line. Happens on header rows, for example.
-                let Some(cg) = MethylationSite::from_methylome_file_line(&line, args.invert) else {
+                let Some(cg) = MethylationSite::from_methylome_file_line(&line) else {
                     continue;
                 };
 

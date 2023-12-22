@@ -31,17 +31,20 @@ pub fn run(args: AlphaBeta) -> Return<(Model, Analysis, Pedigree, ObsSteadyState
     println!("Building pedigree...");
     println!();
 
-    let (pedigree, p0uu) = Pedigree::build(
+    let pedigree = Pedigree::build(
         &config::get().nodes,
         &config::get().edges,
         config::get().posterior_max_filter,
+        None,
     )?;
-    println!();
-    println!();
+
+    let divergence = pedigree.divergence()?;
+    let p0uu = pedigree.avg_umeth_lvl();
+
     println!("Estimating inheritance gain and loss...");
     println!();
-    let (model, pred_div, residuals) = ab_neutral::run(&pedigree, p0uu, p0uu, 1.0)?;
-    let analysis = boot_model::run(&pedigree, &model, pred_div, residuals, p0uu, p0uu, 1.0)?;
+    let (model, pred_div, residuals) = ab_neutral::run(&divergence, p0uu, p0uu, 1.0)?;
+    let analysis = boot_model::run(&divergence, &model, pred_div, residuals, p0uu, p0uu, 1.0)?;
 
     Ok((model, analysis, pedigree, 1.0 - p0uu))
 }

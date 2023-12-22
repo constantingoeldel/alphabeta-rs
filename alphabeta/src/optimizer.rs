@@ -5,8 +5,9 @@ use argmin::core::CostFunction;
 use ndarray::Array1;
 use rand::{distributions::Uniform, thread_rng, Rng};
 
-use crate::divergence::{divergence, Divergence};
 use pedigree::{DivergenceBetweenSamples, Pedigree};
+
+use crate::divergence::{self, Divergence};
 
 #[derive(Clone, Debug)]
 pub struct Problem {
@@ -169,8 +170,8 @@ impl CostFunction for Problem {
     type Param = Vec<f64>;
     fn cost(&self, p: &Self::Param) -> Result<Self::Output, argmin::core::Error> {
         let p = Model::from_vec(p);
-        let divergence = divergence(
-            &self.pedigree,
+        let divergence = Divergence::calc(
+            &self.divergence,
             self.p_mm,
             self.p_um,
             self.p_uu,
@@ -181,10 +182,10 @@ impl CostFunction for Problem {
 
         let mut square_sum = 0.0;
 
-        for (div, ped) in divergence.dt1t2.iter().zip(self.pedigree.column(3)) {
+        for (div, ped) in divergence.dt1t2.iter().zip(self.divergence.column(3)) {
             square_sum += (ped - p.intercept - div).powi(2)
                 + self.eqp_weight
-                    * self.pedigree.nrows() as f64
+                    * self.divergence.nrows() as f64
                     * (divergence.p_uu - self.eqp).powi(2);
         }
 
